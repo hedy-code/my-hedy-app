@@ -1,0 +1,128 @@
+.expirations-container {
+    padding: 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.expiry-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.expiry-item {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    background: var(--surface-1);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    transition: transform 0.2s ease;
+}
+
+.expiry-item:hover {
+    transform: translateX(4px);
+    background: var(--surface-2);
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.expiry-item.expired {
+    border-left: 4px solid var(--danger);
+}
+
+.expiry-item.expired .status-indicator {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+
+.expiry-item.expired .expiry-days {
+    color: var(--danger);
+    font-weight: 700;
+}
+
+.expiry-item.critical {
+    border-left: 4px solid var(--warning);
+}
+
+.expiry-item.critical .status-indicator {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.expiry-item.critical .expiry-days {
+    color: var(--warning);
+    font-weight: 700;
+}
+
+.expiry-item.warning {
+    border-left: 4px solid var(--brand-secondary);
+}
+
+.expiry-item.warning .status-indicator {
+    background: rgba(139, 92, 246, 0.1);
+    color: var(--brand-secondary);
+}
+
+.expiry-item.warning .expiry-days {
+    color: var(--brand-secondary);
+    font-weight: 600;
+}
+
+.expiry-item.good {
+    border-left: 4px solid var(--success);
+}
+
+.expiry-item.good .status-indicator {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.expiry-item.good .expiry-days {
+    color: var(--success);
+    font-weight: 500;
+}
+
+.expiry-details {
+    flex: 1;
+}
+
+.expiry-date {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
+.expiry-days {
+    font-size: 1.1rem;
+    text-align: right;
+    min-width: 120px;
+}
+
+.btn-consume-small {
+    background: var(--surface-2);
+    border: 1px solid var(--border-color);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.btn-consume-small:hover:not(:disabled) {
+    background: var(--border-color);
+}
+
+.btn-consume-small:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
