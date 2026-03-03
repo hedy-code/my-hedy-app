@@ -8,10 +8,13 @@ export function Dashboard() {
 
     const totalItems = items.length;
     const expiringSoon = items.filter(i => {
-        if (!i.expiryDate) return false;
-        const expiry = parseISO(i.expiryDate);
-        const thirtyDaysFromNow = addDays(new Date(), 30);
-        return isBefore(expiry, thirtyDaysFromNow);
+        if (!i.batches) return false;
+        return i.batches.some(b => {
+            if (!b.expiryDate) return false;
+            const expiry = parseISO(b.expiryDate);
+            const thirtyDaysFromNow = addDays(new Date(), 30);
+            return isBefore(expiry, thirtyDaysFromNow);
+        });
     }).length;
 
     return (

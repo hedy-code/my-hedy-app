@@ -1,13 +1,20 @@
 export type ItemCategory = '食品' | '清洁用品' | '个人护理' | '卫浴用品' | '其他';
 
+export interface InventoryBatch {
+    id: string;
+    quantity: number;
+    expiryDate?: string;       // ISO format YYYY-MM-DD
+    addedAt: string;           // ISO timestamp
+}
+
 export interface InventoryItem {
     id: string;
     name: string;
     category: ItemCategory;
-    quantity: number;
+    totalQuantity: number;     // Changed from 'quantity'
     unit: string;              // e.g., 'pcs', 'ml', 'g', 'rolls'
-    lowStockThreshold: number; // Alert when quantity <= this
-    expiryDate?: string;       // ISO format YYYY-MM-DD
+    lowStockThreshold: number; // Alert when totalQuantity <= this
+    batches: InventoryBatch[]; // Replaces 'expiryDate'
     createdAt: string;         // ISO timestamp
     updatedAt: string;         // ISO timestamp
 }

@@ -97,7 +97,7 @@ export function useInventory() {
         try {
             const docRef = doc(db, 'users', user.uid, 'items', newItem.id);
             await setDoc(docRef, newItem);
-            await logActivity(newItem.id, newItem.name, 'add', newItem.quantity);
+            await logActivity(newItem.id, newItem.name, 'add', newItem.totalQuantity);
         } catch (error) {
             console.error("Error adding item:", error);
         }
@@ -165,24 +165,60 @@ export function useInventory() {
 
     const consumeItem = async (id: string, amount: number = 1) => {
         const item = items.find((i) => i.id === id);
-        if (!item || item.quantity <= 0) return;
+        if (!item || item.totalQuantity <= 0) return;
 
-        const actualAmount = Math.min(amount, item.quantity);
-        const newQuantity = item.quantity - actualAmount;
+        const actualAmount = Math.min(amount, item.totalQuantity);
+        let amountRemaining = actualAmount;
 
-        await updateItem(id, { quantity: newQuantity });
+        // Sort batches: earliest expiry first, then by addedAt
+        const sortedBatches = [...item.batches].sort((a, b) => {
+            if (a.expiryDate && b.expiryDate) {
+                return new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime();
+            }
+            if (a.expiryDate) return -1;
+            if (b.expiryDate) return 1;
+            return new Date(a.addedAt).getTime() - new Date(b.addedAt).getTime();
+        });
+
+        const newBatches = [];
+        for (const batch of sortedBatches) {
+            if (amountRemaining <= 0) {
+                newBatches.push(batch);
+                continue;
+            }
+            if (batch.quantity <= amountRemaining) {
+                amountRemaining -= batch.quantity;
+            } else {
+                newBatches.push({ ...batch, quantity: batch.quantity - amountRemaining });
+                amountRemaining = 0;
+            }
+        }
+
+        const newTotalQuantity = item.totalQuantity - actualAmount;
+
+        await updateItem(id, { totalQuantity: newTotalQuantity, batches: newBatches });
         await logActivity(id, item.name, 'consume', -actualAmount);
 
-        if (newQuantity <= item.lowStockThreshold) {
+        if (newTotalQuantity <= item.lowStockThreshold) {
             await addToShoppingListIfMissing(item);
         }
     };
 
-    const stockUpItem = async (id: string, amount: number) => {
+    const stockUpItem = async (id: string, amount: number, expiryDate?: string) => {
         const item = items.find((i) => i.id === id);
         if (!item) return;
 
-        await updateItem(id, { quantity: item.quantity + amount });
+        const newBatch = {
+            id: generateId(),
+            quantity: amount,
+            expiryDate,
+            addedAt: new Date().toISOString()
+        };
+
+        await updateItem(id, {
+            totalQuantity: item.totalQuantity + amount,
+            batches: [...item.batches, newBatch]
+        });
         await logActivity(id, item.name, 'stock_up', amount);
     };
 
@@ -202,7 +238,16 @@ export function useInventory() {
                 const invItem = items.find((i) => i.id === shopItem.itemId);
                 if (invItem) {
                     const itemRef = doc(db, 'users', user.uid, 'items', invItem.id);
-                    batch.update(itemRef, { quantity: invItem.quantity + shopItem.quantityNeeded, updatedAt: new Date().toISOString() });
+                    const newBatch = {
+                        id: generateId(),
+                        quantity: shopItem.quantityNeeded,
+                        addedAt: new Date().toISOString()
+                    };
+                    batch.update(itemRef, {
+                        totalQuantity: invItem.totalQuantity + shopItem.quantityNeeded,
+                        batches: [...invItem.batches, newBatch],
+                        updatedAt: new Date().toISOString()
+                    });
                 }
             }
 
@@ -229,6 +274,6 @@ export function useInventory() {
         stockUpItem,
         toggleShoppingItem,
         unboughtShoppingCount: shoppingList.filter((s) => !s.isBought).length,
-        lowStockItems: items.filter((i) => i.quantity <= i.lowStockThreshold),
+        lowStockItems: items.filter((i) => i.totalQuantity <= i.lowStockThreshold),
     };
 }

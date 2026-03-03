@@ -15,6 +15,14 @@ export function Inventory() {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+    const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+    const toggleExpand = (id: string) => {
+        const next = new Set(expandedItems);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        setExpandedItems(next);
+    };
 
     // Form state
     const [formData, setFormData] = useState({
@@ -43,10 +51,10 @@ export function Inventory() {
         setFormData({
             name: item.name,
             category: item.category,
-            quantity: item.quantity,
+            quantity: item.totalQuantity, // Just for viewing, editing is disabled
             unit: item.unit,
             lowStockThreshold: item.lowStockThreshold,
-            expiryDate: item.expiryDate || ''
+            expiryDate: item.batches?.[0]?.expiryDate || '' // Show first batch expiry as reference
         });
         setIsModalOpen(true);
     };
@@ -54,16 +62,36 @@ export function Inventory() {
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
         if (editingItem) {
-            updateItem(editingItem.id, formData);
+            updateItem(editingItem.id, {
+                name: formData.name,
+                category: formData.category,
+                unit: formData.unit,
+                lowStockThreshold: formData.lowStockThreshold,
+            });
         } else {
-            addItem(formData);
+            addItem({
+                name: formData.name,
+                category: formData.category,
+                totalQuantity: formData.quantity,
+                unit: formData.unit,
+                lowStockThreshold: formData.lowStockThreshold,
+                batches: [{
+                    id: crypto.randomUUID(),
+                    quantity: formData.quantity,
+                    expiryDate: formData.expiryDate || undefined,
+                    addedAt: new Date().toISOString()
+                }]
+            });
         }
         setIsModalOpen(false);
     };
 
-    const isExpiringSoon = (dateStr?: string) => {
-        if (!dateStr) return false;
-        return isBefore(parseISO(dateStr), addDays(new Date(), 30));
+    const isExpiringSoon = (item: InventoryItem) => {
+        if (!item.batches) return false;
+        return item.batches.some(b => {
+            if (!b.expiryDate) return false;
+            return isBefore(parseISO(b.expiryDate), addDays(new Date(), 30));
+        });
     };
 
     return (
@@ -99,10 +127,10 @@ export function Inventory() {
 
             <div className="items-grid">
                 {filteredItems.map(item => (
-                    <div key={item.id} className={`glass item-card ${item.quantity <= item.lowStockThreshold ? 'low-stock' : ''}`}>
+                    <div key={item.id} className={`glass item-card ${item.totalQuantity <= item.lowStockThreshold ? 'low-stock' : ''}`}>
                         <div className="item-card-header">
                             <span className="category-tag">{item.category}</span>
-                            {isExpiringSoon(item.expiryDate) && (
+                            {isExpiringSoon(item) && (
                                 <span className="warning-tag" title="30天内过期">
                                     <AlertCircle size={14} /> 即将过期
                                 </span>
@@ -112,11 +140,11 @@ export function Inventory() {
                         <h3 className="item-name">{item.name}</h3>
 
                         <div className="item-qty-display">
-                            <span className="qty-value">{item.quantity}</span>
+                            <span className="qty-value">{item.totalQuantity}</span>
                             <span className="qty-unit">{item.unit}</span>
                         </div>
 
-                        {item.quantity <= item.lowStockThreshold && (
+                        {item.totalQuantity <= item.lowStockThreshold && (
                             <p className="low-stock-msg">库存不足！</p>
                         )}
 
@@ -124,9 +152,13 @@ export function Inventory() {
                             <button
                                 className="btn-consume"
                                 onClick={() => consumeItem(item.id, 1)}
-                                disabled={item.quantity === 0}
+                                disabled={item.totalQuantity === 0}
                             >
-                                <Minus size={16} /> 消耗 1
+                                <Minus size={16} /> 快捷消耗
+                            </button>
+
+                            <button className="btn-secondary" onClick={() => toggleExpand(item.id)}>
+                                详情
                             </button>
 
                             <div className="secondary-actions">
@@ -138,6 +170,17 @@ export function Inventory() {
                                 </button>
                             </div>
                         </div>
+                        {expandedItems.has(item.id) && (
+                            <div className="batches-panel">
+                                <h4>批次详情</h4>
+                                {item.batches?.map(b => (
+                                    <div key={b.id} className="batch-row flex-between" style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)', marginTop: '4px' }}>
+                                        <span>🗓️ {b.expiryDate || '永久有效'}</span>
+                                        <span>{b.quantity} {item.unit}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 ))}
                 {filteredItems.length === 0 && (
@@ -165,8 +208,8 @@ export function Inventory() {
                                     </select>
                                 </div>
                                 <div className="form-group">
-                                    <label>数量</label>
-                                    <input required type="number" min="0" step="0.1" value={formData.quantity} onChange={e => setFormData({ ...formData, quantity: parseFloat(e.target.value) })} />
+                                    <label>数量 {editingItem && '(编辑基本信息时不支持修改总数)'}</label>
+                                    <input required type="number" min="0" step="0.1" value={formData.quantity} disabled={!!editingItem} onChange={e => setFormData({ ...formData, quantity: parseFloat(e.target.value) })} />
                                 </div>
                             </div>
 
@@ -181,10 +224,12 @@ export function Inventory() {
                                 </div>
                             </div>
 
-                            <div className="form-group">
-                                <label>保质期 (可选)</label>
-                                <input type="date" value={formData.expiryDate} onChange={e => setFormData({ ...formData, expiryDate: e.target.value })} />
-                            </div>
+                            {!editingItem && (
+                                <div className="form-group">
+                                    <label>保质期 (首批次, 可选)</label>
+                                    <input type="date" value={formData.expiryDate} onChange={e => setFormData({ ...formData, expiryDate: e.target.value })} />
+                                </div>
+                            )}
 
                             <div className="modal-actions">
                                 <button type="button" className="btn-cancel" onClick={() => setIsModalOpen(false)}>取消</button>
