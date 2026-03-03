@@ -8,7 +8,7 @@ import './Inventory.css';
 const CATEGORIES: ItemCategory[] = ['食品', '清洁用品', '个人护理', '卫浴用品', '其他'];
 
 export function Inventory() {
-    const { items, addItem, updateItem, deleteItem, consumeItem } = useInventory();
+    const { items, addItem, updateItem, deleteItem, consumeItem, stockUpItem } = useInventory();
 
     const [search, setSearch] = useState('');
     const [filterCategory, setFilterCategory] = useState<string>('All');
@@ -24,14 +24,21 @@ export function Inventory() {
         setExpandedItems(next);
     };
 
+    // Stock up state
+    const [isStockUpModalOpen, setIsStockUpModalOpen] = useState(false);
+    const [stockUpItemData, setStockUpItemData] = useState<InventoryItem | null>(null);
+    const [stockUpFormData, setStockUpFormData] = useState({
+        quantity: 1,
+        expiryDate: ''
+    });
+
     // Form state
     const [formData, setFormData] = useState({
         name: '',
         category: '食品' as ItemCategory,
-        quantity: 1,
         unit: 'pcs',
         lowStockThreshold: 1,
-        expiryDate: ''
+        batches: [{ id: crypto.randomUUID(), quantity: 1, expiryDate: '' }]
     });
 
     const filteredItems = items.filter(item => {
@@ -42,7 +49,7 @@ export function Inventory() {
 
     const handleOpenAdd = () => {
         setEditingItem(null);
-        setFormData({ name: '', category: '食品', quantity: 1, unit: 'pcs', lowStockThreshold: 1, expiryDate: '' });
+        setFormData({ name: '', category: '食品', unit: 'pcs', lowStockThreshold: 1, batches: [{ id: crypto.randomUUID(), quantity: 1, expiryDate: '' }] });
         setIsModalOpen(true);
     };
 
@@ -51,10 +58,9 @@ export function Inventory() {
         setFormData({
             name: item.name,
             category: item.category,
-            quantity: item.totalQuantity, // Just for viewing, editing is disabled
             unit: item.unit,
             lowStockThreshold: item.lowStockThreshold,
-            expiryDate: item.batches?.[0]?.expiryDate || '' // Show first batch expiry as reference
+            batches: [] // Editing batches is not supported in the basic edit form
         });
         setIsModalOpen(true);
     };
@@ -69,18 +75,21 @@ export function Inventory() {
                 lowStockThreshold: formData.lowStockThreshold,
             });
         } else {
+            const totalQuantity = formData.batches.reduce((sum, b) => sum + (Number(b.quantity) || 0), 0);
+            const validBatches = formData.batches.map(b => ({
+                id: crypto.randomUUID(),
+                quantity: Number(b.quantity) || 0,
+                expiryDate: b.expiryDate || undefined,
+                addedAt: new Date().toISOString()
+            }));
+
             addItem({
                 name: formData.name,
                 category: formData.category,
-                totalQuantity: formData.quantity,
+                totalQuantity,
                 unit: formData.unit,
                 lowStockThreshold: formData.lowStockThreshold,
-                batches: [{
-                    id: crypto.randomUUID(),
-                    quantity: formData.quantity,
-                    expiryDate: formData.expiryDate || undefined,
-                    addedAt: new Date().toISOString()
-                }]
+                batches: validBatches
             });
         }
         setIsModalOpen(false);
@@ -157,6 +166,18 @@ export function Inventory() {
                                 <Minus size={16} /> 快捷消耗
                             </button>
 
+                            <button
+                                className="btn-primary"
+                                style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
+                                onClick={() => {
+                                    setStockUpItemData(item);
+                                    setStockUpFormData({ quantity: 1, expiryDate: '' });
+                                    setIsStockUpModalOpen(true);
+                                }}
+                            >
+                                <Plus size={16} /> 进货
+                            </button>
+
                             <button className="btn-secondary" onClick={() => toggleExpand(item.id)}>
                                 详情
                             </button>
@@ -207,10 +228,12 @@ export function Inventory() {
                                         {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                                     </select>
                                 </div>
-                                <div className="form-group">
-                                    <label>数量 {editingItem && '(编辑基本信息时不支持修改总数)'}</label>
-                                    <input required type="number" min="0" step="0.1" value={formData.quantity} disabled={!!editingItem} onChange={e => setFormData({ ...formData, quantity: parseFloat(e.target.value) })} />
-                                </div>
+                                {editingItem && (
+                                    <div className="form-group">
+                                        <label>当前总数量</label>
+                                        <input type="number" value={editingItem.totalQuantity} disabled />
+                                    </div>
+                                )}
                             </div>
 
                             <div className="form-row">
@@ -225,15 +248,97 @@ export function Inventory() {
                             </div>
 
                             {!editingItem && (
-                                <div className="form-group">
-                                    <label>保质期 (首批次, 可选)</label>
-                                    <input type="date" value={formData.expiryDate} onChange={e => setFormData({ ...formData, expiryDate: e.target.value })} />
+                                <div className="form-group batches-group">
+                                    <label>录入批次 (数量 & 保质期)</label>
+                                    {formData.batches.map((batch, index) => (
+                                        <div key={batch.id} className="batch-input-row flex-between" style={{ marginBottom: '8px', gap: '8px' }}>
+                                            <input
+                                                type="number"
+                                                min="0.1"
+                                                step="0.1"
+                                                required
+                                                value={batch.quantity || ''}
+                                                onChange={e => {
+                                                    const newBatches = [...formData.batches];
+                                                    newBatches[index].quantity = parseFloat(e.target.value) || 0;
+                                                    setFormData({ ...formData, batches: newBatches });
+                                                }}
+                                                style={{ width: '80px' }}
+                                                placeholder="数量"
+                                            />
+                                            <input
+                                                type="date"
+                                                value={batch.expiryDate}
+                                                onChange={e => {
+                                                    const newBatches = [...formData.batches];
+                                                    newBatches[index].expiryDate = e.target.value;
+                                                    setFormData({ ...formData, batches: newBatches });
+                                                }}
+                                                style={{ flex: 1 }}
+                                            />
+                                            {formData.batches.length > 1 && (
+                                                <button
+                                                    type="button"
+                                                    className="icon-btn delete-btn"
+                                                    onClick={() => {
+                                                        const newBatches = formData.batches.filter((_, i) => i !== index);
+                                                        setFormData({ ...formData, batches: newBatches });
+                                                    }}
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <button
+                                        type="button"
+                                        className="btn-secondary"
+                                        style={{ width: '100%', marginTop: '8px', fontSize: '0.9rem', padding: '0.5rem' }}
+                                        onClick={() => {
+                                            setFormData({
+                                                ...formData,
+                                                batches: [...formData.batches, { id: crypto.randomUUID(), quantity: 1, expiryDate: '' }]
+                                            });
+                                        }}
+                                    >
+                                        + 添加另一批次
+                                    </button>
+                                    <div style={{ marginTop: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                                        总计入库数量: {formData.batches.reduce((sum, b) => sum + (Number(b.quantity) || 0), 0)} {formData.unit}
+                                    </div>
                                 </div>
                             )}
 
                             <div className="modal-actions">
                                 <button type="button" className="btn-cancel" onClick={() => setIsModalOpen(false)}>取消</button>
                                 <button type="submit" className="btn-primary">保存物品</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+            {isStockUpModalOpen && stockUpItemData && (
+                <div className="modal-overlay" onClick={() => setIsStockUpModalOpen(false)}>
+                    <div className="glass modal-content" onClick={e => e.stopPropagation()}>
+                        <h2 className="modal-title">进货: {stockUpItemData.name}</h2>
+                        <form onSubmit={(e) => {
+                            e.preventDefault();
+                            stockUpItem(stockUpItemData.id, stockUpFormData.quantity, stockUpFormData.expiryDate || undefined);
+                            setIsStockUpModalOpen(false);
+                        }} className="item-form">
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>新增数量 ({stockUpItemData.unit})</label>
+                                    <input required type="number" min="0.1" step="0.1" value={stockUpFormData.quantity || ''} onChange={e => setStockUpFormData({ ...stockUpFormData, quantity: parseFloat(e.target.value) || 0 })} />
+                                </div>
+                                <div className="form-group">
+                                    <label>此批次保质期 (可选)</label>
+                                    <input type="date" value={stockUpFormData.expiryDate} onChange={e => setStockUpFormData({ ...stockUpFormData, expiryDate: e.target.value })} />
+                                </div>
+                            </div>
+                            <div className="modal-actions">
+                                <button type="button" className="btn-cancel" onClick={() => setIsStockUpModalOpen(false)}>取消</button>
+                                <button type="submit" className="btn-primary">确认进货</button>
                             </div>
                         </form>
                     </div>
