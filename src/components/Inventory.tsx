@@ -232,7 +232,7 @@ export function Inventory() {
 
             <div className="items-grid">
                 {filteredItems.map(item => {
-                    const hasLowStock = item.totalQuantity <= item.lowStockThreshold;
+                    const hasLowStock = item.totalQuantity <= (item.lowStockThreshold || 0);
                     return (
                         <div key={item.id} className={`glass item-card ${hasLowStock ? 'low-stock' : ''}`}>
                             <div className="item-card-header">
@@ -256,10 +256,10 @@ export function Inventory() {
                                 <span className="qty-unit">{item.unit}</span>
                             </div>
                             <div style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '-8px', marginBottom: '12px' }}>
-                                警报线: {item.lowStockThreshold}
+                                警报线: {item.lowStockThreshold || 0}
                             </div>
 
-                            {item.totalQuantity <= item.lowStockThreshold && (
+                            {item.totalQuantity <= (item.lowStockThreshold || 0) && (
                                 <p className="low-stock-msg">库存不足！</p>
                             )}
 

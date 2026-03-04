@@ -114,7 +114,7 @@ export function useInventory() {
             const item = items.find((i) => i.id === id);
             if (item) {
                 const newTotalQuantity = updates.totalQuantity !== undefined ? updates.totalQuantity : item.totalQuantity;
-                const newThreshold = updates.lowStockThreshold !== undefined ? updates.lowStockThreshold : item.lowStockThreshold;
+                const newThreshold = updates.lowStockThreshold !== undefined ? updates.lowStockThreshold : (item.lowStockThreshold || 0);
                 if (newTotalQuantity <= newThreshold) {
                     await addToShoppingListIfMissing(item, newTotalQuantity);
                 }
@@ -156,7 +156,7 @@ export function useInventory() {
         const exists = shoppingList.find((s) => s.itemId === item.id && !s.isBought);
         if (exists) return; // Already on the list
 
-        if (currentQuantity > item.lowStockThreshold) return; // Only add if below or equal to threshold
+        if (currentQuantity > (item.lowStockThreshold || 0)) return; // Only add if below or equal to threshold
 
         const newItem: ShoppingItem = {
             id: generateId(),
@@ -164,7 +164,7 @@ export function useInventory() {
             customName: item.name,
             specification: item.specification || '默认规格',
             category: item.category,
-            quantityNeeded: Math.max(1, item.lowStockThreshold * 2),
+            quantityNeeded: Math.max(1, (item.lowStockThreshold || 0) * 2),
             isBought: false,
             createdAt: new Date().toISOString(),
         };
@@ -275,7 +275,10 @@ export function useInventory() {
             if (newBought && shopItem.itemId) {
                 const invItem = items.find((i) => i.id === shopItem.itemId);
                 if (invItem) {
-                    addedAmount = customQuantity !== undefined ? customQuantity : shopItem.quantityNeeded;
+                    let fallbackAdded = customQuantity !== undefined ? customQuantity : shopItem.quantityNeeded;
+                    if (Number.isNaN(fallbackAdded)) fallbackAdded = 1;
+
+                    addedAmount = fallbackAdded;
                     const itemRef = doc(db, 'users', user.uid, 'items', invItem.id);
                     const newBatch = {
                         id: generateId(),
