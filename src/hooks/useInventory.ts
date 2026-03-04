@@ -261,7 +261,6 @@ export function useInventory() {
         try {
             const batch = writeBatch(db);
             const docRef = doc(db, 'users', user.uid, 'shopping', id);
-            batch.update(docRef, { isBought: newBought, updatedAt: new Date().toISOString() });
 
             let addedAmount = 0;
 
@@ -281,7 +280,19 @@ export function useInventory() {
                         batches: [...(invItem.batches || []), newBatch],
                         updatedAt: new Date().toISOString()
                     });
+
+                    if (invItem.totalQuantity + addedAmount >= invItem.lowStockThreshold && newBought) {
+                        // Delete from shopping list if new quantity is sufficient
+                        batch.delete(docRef);
+                    } else {
+                        // Otherwise just mark as bought
+                        batch.update(docRef, { isBought: newBought, updatedAt: new Date().toISOString() });
+                    }
+                } else {
+                    batch.update(docRef, { isBought: newBought, updatedAt: new Date().toISOString() });
                 }
+            } else {
+                batch.update(docRef, { isBought: newBought, updatedAt: new Date().toISOString() });
             }
 
             await batch.commit();
