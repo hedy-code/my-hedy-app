@@ -213,7 +213,7 @@ export function useInventory() {
         const newBatch = {
             id: generateId(),
             quantity: amount,
-            expiryDate,
+            ...(expiryDate ? { expiryDate } : {}),
             addedAt: new Date().toISOString()
         };
 
@@ -272,7 +272,7 @@ export function useInventory() {
                     const newBatch = {
                         id: generateId(),
                         quantity: addedAmount,
-                        expiryDate: expiryDate || undefined,
+                        ...(expiryDate ? { expiryDate } : {}),
                         addedAt: new Date().toISOString()
                     };
                     batch.update(itemRef, {

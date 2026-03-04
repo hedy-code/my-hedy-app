@@ -146,7 +146,7 @@ export function Inventory() {
             const validBatches = formData.batches.map(b => ({
                 id: crypto.randomUUID(),
                 quantity: Number(b.quantity) || 0,
-                expiryDate: b.expiryDate || undefined,
+                ...(b.expiryDate ? { expiryDate: b.expiryDate } : {}),
                 addedAt: new Date().toISOString()
             }));
 
