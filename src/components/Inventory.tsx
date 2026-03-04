@@ -302,13 +302,13 @@ export function Inventory() {
                                     <h4>批次详情</h4>
                                     {(!item.batches || item.batches.length === 0) ? (
                                         <div className="batch-row flex-between" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                                            <span>🗓️ {(item as any).expiryDate || '永久有效'}</span>
+                                            <span>🗓️ {(item as any).expiryDate || '暂无'}</span>
                                             <span>{item.totalQuantity || (item as any).quantity} {item.unit}</span>
                                         </div>
                                     ) : (
                                         item.batches.map(b => (
                                             <div key={b.id} className="batch-row flex-between" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '4px', alignItems: 'center' }}>
-                                                <span>🗓️ {b.expiryDate || '永久有效'}</span>
+                                                <span>🗓️ {b.expiryDate || '暂无'}</span>
                                                 {editingBatch?.itemId === item.id && editingBatch?.batchId === b.id ? (
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                         <input
