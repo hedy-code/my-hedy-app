@@ -109,6 +109,16 @@ export function useInventory() {
         try {
             const docRef = doc(db, 'users', user.uid, 'items', id);
             await updateDoc(docRef, { ...updates, updatedAt: new Date().toISOString() });
+
+            // Re-evaluate shopping list status after update
+            const item = items.find((i) => i.id === id);
+            if (item) {
+                const newTotalQuantity = updates.totalQuantity !== undefined ? updates.totalQuantity : item.totalQuantity;
+                const newThreshold = updates.lowStockThreshold !== undefined ? updates.lowStockThreshold : item.lowStockThreshold;
+                if (newTotalQuantity <= newThreshold) {
+                    await addToShoppingListIfMissing(item, newTotalQuantity);
+                }
+            }
         } catch (error) {
             console.error("Error updating item:", error);
         }
@@ -141,10 +151,12 @@ export function useInventory() {
         }
     };
 
-    const addToShoppingListIfMissing = async (item: InventoryItem) => {
+    const addToShoppingListIfMissing = async (item: InventoryItem, currentQuantity: number) => {
         if (!user) return;
         const exists = shoppingList.find((s) => s.itemId === item.id && !s.isBought);
         if (exists) return; // Already on the list
+
+        if (currentQuantity > item.lowStockThreshold) return; // Only add if below or equal to threshold
 
         const newItem: ShoppingItem = {
             id: generateId(),
@@ -202,7 +214,7 @@ export function useInventory() {
         await logActivity(id, item.name, 'consume', -actualAmount);
 
         if (newTotalQuantity <= item.lowStockThreshold) {
-            await addToShoppingListIfMissing(item);
+            await addToShoppingListIfMissing(item, newTotalQuantity);
         }
     };
 
@@ -249,6 +261,10 @@ export function useInventory() {
 
         const diff = newQuantity - oldQuantity;
         await logActivity(id, item.name, 'edit', diff);
+
+        if (newTotalQuantity <= item.lowStockThreshold && diff < 0) {
+            await addToShoppingListIfMissing(item, newTotalQuantity);
+        }
     };
 
     const toggleShoppingItem = async (id: string, customQuantity?: number, expiryDate?: string) => {
