@@ -126,8 +126,11 @@ export function Inventory() {
             const nameMatch = items.find(i => i.name === formData.name);
             if (nameMatch) {
                 const existingSpecs = items.filter(i => i.name === formData.name).map(i => i.specification || '默认规格').join('、');
-                if (!window.confirm(`此【${formData.name}】已记录过以下规格：\n${existingSpecs}\n\n请确认是否为您所要添加的全新规格？`)) {
-                    return;
+                const continueAdding = window.confirm(`此【${formData.name}】已记录过以下规格：\n${existingSpecs}\n\n请确认是否为您所要添加的全新规格？\n(点击【确定】继续留在当前弹窗补充其他信息)`);
+                if (!continueAdding) {
+                    return; // clicked cancel, stop.
+                } else {
+                    return; // clicked yes, stay on the modal to continue editing, stop the save event.
                 }
             }
         }
