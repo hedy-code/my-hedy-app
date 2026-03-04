@@ -66,9 +66,6 @@ export function ShoppingList() {
                                         </span>
                                         <span className="item-meta">类别: {item.category.replace('-', ' → ')}</span>
                                     </div>
-                                    <div className="item-qty">
-                                        <strong>{item.quantityNeeded}</strong>
-                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -93,9 +90,6 @@ export function ShoppingList() {
                                                 [{item.specification || '默认规格'}]
                                             </span>
                                         </span>
-                                    </div>
-                                    <div className="item-qty">
-                                        <strong>{item.quantityNeeded}</strong>
                                     </div>
                                 </div>
                             ))}

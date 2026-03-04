@@ -255,6 +255,9 @@ export function Inventory() {
                                 <span className="qty-value">{item.totalQuantity}</span>
                                 <span className="qty-unit">{item.unit}</span>
                             </div>
+                            <div style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '-8px', marginBottom: '12px' }}>
+                                警报线: {item.lowStockThreshold}
+                            </div>
 
                             {item.totalQuantity <= item.lowStockThreshold && (
                                 <p className="low-stock-msg">库存不足！</p>
