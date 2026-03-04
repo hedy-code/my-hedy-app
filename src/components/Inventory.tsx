@@ -194,12 +194,19 @@ export function Inventory() {
                         {expandedItems.has(item.id) && (
                             <div className="batches-panel">
                                 <h4>批次详情</h4>
-                                {item.batches?.map(b => (
-                                    <div key={b.id} className="batch-row flex-between" style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)', marginTop: '4px' }}>
-                                        <span>🗓️ {b.expiryDate || '永久有效'}</span>
-                                        <span>{b.quantity} {item.unit}</span>
+                                {(!item.batches || item.batches.length === 0) ? (
+                                    <div className="batch-row flex-between" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                                        <span>🗓️ {(item as any).expiryDate || '永久有效'}</span>
+                                        <span>{item.totalQuantity || (item as any).quantity} {item.unit}</span>
                                     </div>
-                                ))}
+                                ) : (
+                                    item.batches.map(b => (
+                                        <div key={b.id} className="batch-row flex-between" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                                            <span>🗓️ {b.expiryDate || '永久有效'}</span>
+                                            <span>{b.quantity} {item.unit}</span>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         )}
                     </div>
