@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useInventory } from '../hooks/useInventory';
 import type { InventoryItem } from '../types';
-import { CATEGORY_UNIT_MAP } from '../types';
+import { CATEGORY_HIERARCHY } from '../types';
 import { Plus, Search, Filter, Minus, Edit, Trash2, AlertCircle } from 'lucide-react';
 import { isBefore, addDays, parseISO } from 'date-fns';
 import './Inventory.css';
 
-const CATEGORIES: string[] = Object.keys(CATEGORY_UNIT_MAP);
+const MAIN_CATEGORIES: string[] = Object.keys(CATEGORY_HIERARCHY);
 
 export function Inventory() {
     const { items, addItem, updateItem, deleteItem, consumeItem, stockUpItem, updateBatchQuantity } = useInventory();
@@ -40,8 +40,9 @@ export function Inventory() {
     const [formData, setFormData] = useState({
         name: '',
         specification: '默认规格',
-        category: CATEGORIES[0],
-        unit: CATEGORY_UNIT_MAP[CATEGORIES[0]],
+        mainCategory: MAIN_CATEGORIES[0],
+        subCategory: Object.keys(CATEGORY_HIERARCHY[MAIN_CATEGORIES[0]])[0],
+        unit: CATEGORY_HIERARCHY[MAIN_CATEGORIES[0]][Object.keys(CATEGORY_HIERARCHY[MAIN_CATEGORIES[0]])[0]],
         lowStockThreshold: 1 as number | undefined,
         batches: [{ id: crypto.randomUUID(), quantity: 1, expiryDate: '' }]
     });
@@ -49,7 +50,9 @@ export function Inventory() {
     const filteredItems = items.filter(item => {
         const specText = item.specification || '默认规格';
         const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase()) || specText.toLowerCase().includes(search.toLowerCase());
-        const matchesCategory = filterCategory === 'All' || item.category === filterCategory;
+        // Split legacy categories for backwards compatibility search
+        const itemMainCategory = item.category.includes('-') ? item.category.split('-')[0] : item.category;
+        const matchesCategory = filterCategory === 'All' || itemMainCategory === filterCategory;
         return matchesSearch && matchesCategory;
     });
 
@@ -58,8 +61,9 @@ export function Inventory() {
         setFormData({
             name: '',
             specification: '默认规格',
-            category: CATEGORIES[0],
-            unit: CATEGORY_UNIT_MAP[CATEGORIES[0]],
+            mainCategory: MAIN_CATEGORIES[0],
+            subCategory: Object.keys(CATEGORY_HIERARCHY[MAIN_CATEGORIES[0]])[0],
+            unit: CATEGORY_HIERARCHY[MAIN_CATEGORIES[0]][Object.keys(CATEGORY_HIERARCHY[MAIN_CATEGORIES[0]])[0]],
             lowStockThreshold: 1,
             batches: [{ id: crypto.randomUUID(), quantity: 1, expiryDate: '' }]
         });
@@ -68,10 +72,39 @@ export function Inventory() {
 
     const handleOpenEdit = (item: InventoryItem) => {
         setEditingItem(item);
+
+        let initialMain = MAIN_CATEGORIES[0];
+        let initialSub = Object.keys(CATEGORY_HIERARCHY[MAIN_CATEGORIES[0]])[0];
+
+        if (item.category.includes('-')) {
+            const parts = item.category.split('-');
+            if (MAIN_CATEGORIES.includes(parts[0]) && CATEGORY_HIERARCHY[parts[0]]?.[parts[1]]) {
+                initialMain = parts[0];
+                initialSub = parts[1];
+            }
+        } else { // Handle legacy plain categories
+            // Try to find a main category that matches the legacy category
+            const matchingMain = MAIN_CATEGORIES.find(cat => cat === item.category);
+            if (matchingMain) {
+                initialMain = matchingMain;
+                initialSub = Object.keys(CATEGORY_HIERARCHY[matchingMain])[0]; // Pick first sub-category
+            } else {
+                // If no direct main category match, try to find it as a sub-category
+                for (const mainCat of MAIN_CATEGORIES) {
+                    if (Object.keys(CATEGORY_HIERARCHY[mainCat]).includes(item.category)) {
+                        initialMain = mainCat;
+                        initialSub = item.category;
+                        break;
+                    }
+                }
+            }
+        }
+
         setFormData({
             name: item.name,
             specification: item.specification || '默认规格',
-            category: item.category,
+            mainCategory: initialMain,
+            subCategory: initialSub,
             unit: item.unit,
             lowStockThreshold: item.lowStockThreshold,
             batches: [] // Editing batches is not supported in the basic edit form
@@ -103,7 +136,7 @@ export function Inventory() {
             updateItem(editingItem.id, {
                 name: formData.name,
                 specification: formData.specification || '默认规格',
-                category: formData.category,
+                category: `${formData.mainCategory}-${formData.subCategory}`,
                 unit: formData.unit,
                 lowStockThreshold: formData.lowStockThreshold || 0,
             });
@@ -119,7 +152,7 @@ export function Inventory() {
             addItem({
                 name: formData.name,
                 specification: formData.specification || '默认规格',
-                category: formData.category,
+                category: `${formData.mainCategory}-${formData.subCategory}`,
                 totalQuantity,
                 unit: formData.unit,
                 lowStockThreshold: formData.lowStockThreshold || 0,
@@ -161,119 +194,150 @@ export function Inventory() {
                 </div>
                 <div className="filter-box">
                     <Filter size={20} className="icon" />
-                    <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
-                        <option value="All">全部类别</option>
-                        {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    <div className="categories-list">
+                        <button
+                            className={`category-btn ${filterCategory === 'All' ? 'active' : ''}`}
+                            onClick={() => setFilterCategory('All')}
+                        >
+                            全部 ({items.length})
+                        </button>
+                        {MAIN_CATEGORIES.map(cat => {
+                            const count = items.filter(i => {
+                                const mainStr = i.category.includes('-') ? i.category.split('-')[0] : i.category;
+                                return mainStr === cat;
+                            }).length;
+                            if (count === 0 && filterCategory !== cat) return null;
+
+                            let totalQty = 0;
+                            if (filterCategory === cat || filterCategory === 'All') {
+                                totalQty = count;
+                            }
+                            return (
+                                <button
+                                    key={cat}
+                                    className={`category-btn ${filterCategory === cat ? 'active' : ''}`}
+                                    onClick={() => setFilterCategory(cat)}
+                                >
+                                    {cat}
+                                    <span className={`category-badge ${totalQty === 0 ? 'empty' : ''}`}>
+                                        {totalQty}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
 
             <div className="items-grid">
-                {filteredItems.map(item => (
-                    <div key={item.id} className={`glass item-card ${item.totalQuantity <= item.lowStockThreshold ? 'low-stock' : ''}`}>
-                        <div className="item-card-header">
-                            <span className="category-tag">{item.category}</span>
-                            {isExpiringSoon(item) && (
-                                <span className="warning-tag" title="30天内过期">
-                                    <AlertCircle size={14} /> 即将过期
-                                </span>
-                            )}
-                        </div>
-
-                        <h3 className="item-name">
-                            {item.name}
-                            <span style={{ fontSize: '0.75em', color: 'var(--text-secondary)', marginLeft: '8px', fontWeight: 'normal' }}>
-                                [{item.specification || '默认规格'}]
-                            </span>
-                        </h3>
-
-                        <div className="item-qty-display">
-                            <span className="qty-value">{item.totalQuantity}</span>
-                            <span className="qty-unit">{item.unit}</span>
-                        </div>
-
-                        {item.totalQuantity <= item.lowStockThreshold && (
-                            <p className="low-stock-msg">库存不足！</p>
-                        )}
-
-                        <div className="item-actions">
-                            <button
-                                className="btn-consume"
-                                onClick={() => consumeItem(item.id, 1)}
-                                disabled={item.totalQuantity === 0}
-                            >
-                                <Minus size={16} /> 快捷消耗
-                            </button>
-
-                            <button
-                                className="btn-primary"
-                                style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
-                                onClick={() => {
-                                    setStockUpItemData(item);
-                                    setStockUpFormData({ quantity: 1, expiryDate: '' });
-                                    setIsStockUpModalOpen(true);
-                                }}
-                            >
-                                <Plus size={16} /> 进货
-                            </button>
-
-                            <button className="btn-secondary" onClick={() => toggleExpand(item.id)}>
-                                详情
-                            </button>
-
-                            <div className="secondary-actions">
-                                <button className="icon-btn edit-btn" onClick={() => handleOpenEdit(item)}>
-                                    <Edit size={16} />
-                                </button>
-                                <button className="icon-btn delete-btn" onClick={() => deleteItem(item.id)}>
-                                    <Trash2 size={16} />
-                                </button>
-                            </div>
-                        </div>
-                        {expandedItems.has(item.id) && (
-                            <div className="batches-panel">
-                                <h4>批次详情</h4>
-                                {(!item.batches || item.batches.length === 0) ? (
-                                    <div className="batch-row flex-between" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                                        <span>🗓️ {(item as any).expiryDate || '永久有效'}</span>
-                                        <span>{item.totalQuantity || (item as any).quantity} {item.unit}</span>
-                                    </div>
-                                ) : (
-                                    item.batches.map(b => (
-                                        <div key={b.id} className="batch-row flex-between" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '4px', alignItems: 'center' }}>
-                                            <span>🗓️ {b.expiryDate || '永久有效'}</span>
-                                            {editingBatch?.itemId === item.id && editingBatch?.batchId === b.id ? (
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        step="0.1"
-                                                        style={{ width: '70px', padding: '0.2rem', fontSize: '0.9rem' }}
-                                                        value={tempBatchQty === 0 && tempBatchQty.toString() !== "0" ? "" : tempBatchQty}
-                                                        onChange={e => setTempBatchQty(parseFloat(e.target.value) || 0)}
-                                                    />
-                                                    <button className="icon-btn" onClick={() => {
-                                                        updateBatchQuantity(item.id, b.id, tempBatchQty);
-                                                        setEditingBatch(null);
-                                                    }} style={{ color: 'var(--brand-primary)', padding: '4px' }}>✓</button>
-                                                    <button className="icon-btn delete-btn" onClick={() => setEditingBatch(null)} style={{ padding: '4px' }}>✕</button>
-                                                </div>
-                                            ) : (
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    <span>{b.quantity} {item.unit}</span>
-                                                    <button className="icon-btn" onClick={() => {
-                                                        setEditingBatch({ itemId: item.id, batchId: b.id });
-                                                        setTempBatchQty(b.quantity);
-                                                    }} style={{ padding: '2px', color: 'var(--text-secondary)' }}><Edit size={14} /></button>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))
+                {filteredItems.map(item => {
+                    const hasLowStock = item.totalQuantity <= item.lowStockThreshold;
+                    return (
+                        <div key={item.id} className={`glass item-card ${hasLowStock ? 'low-stock' : ''}`}>
+                            <div className="item-card-header">
+                                <span className="category-tag">{item.category.replace('-', ' → ')}</span>
+                                {isExpiringSoon(item) && (
+                                    <span className="warning-tag" title="30天内过期">
+                                        <AlertCircle size={14} /> 即将过期
+                                    </span>
                                 )}
                             </div>
-                        )}
-                    </div>
-                ))}
+
+                            <h3 className="item-name">
+                                {item.name}
+                                <span style={{ fontSize: '0.75em', color: 'var(--text-secondary)', marginLeft: '8px', fontWeight: 'normal' }}>
+                                    [{item.specification || '默认规格'}]
+                                </span>
+                            </h3>
+
+                            <div className="item-qty-display">
+                                <span className="qty-value">{item.totalQuantity}</span>
+                                <span className="qty-unit">{item.unit}</span>
+                            </div>
+
+                            {item.totalQuantity <= item.lowStockThreshold && (
+                                <p className="low-stock-msg">库存不足！</p>
+                            )}
+
+                            <div className="item-actions">
+                                <button
+                                    className="btn-consume"
+                                    onClick={() => consumeItem(item.id, 1)}
+                                    disabled={item.totalQuantity === 0}
+                                >
+                                    <Minus size={16} /> 快捷消耗
+                                </button>
+
+                                <button
+                                    className="btn-primary"
+                                    style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
+                                    onClick={() => {
+                                        setStockUpItemData(item);
+                                        setStockUpFormData({ quantity: 1, expiryDate: '' });
+                                        setIsStockUpModalOpen(true);
+                                    }}
+                                >
+                                    <Plus size={16} /> 进货
+                                </button>
+
+                                <button className="btn-secondary" onClick={() => toggleExpand(item.id)}>
+                                    详情
+                                </button>
+
+                                <div className="secondary-actions">
+                                    <button className="icon-btn edit-btn" onClick={() => handleOpenEdit(item)}>
+                                        <Edit size={16} />
+                                    </button>
+                                    <button className="icon-btn delete-btn" onClick={() => deleteItem(item.id)}>
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                            {expandedItems.has(item.id) && (
+                                <div className="batches-panel">
+                                    <h4>批次详情</h4>
+                                    {(!item.batches || item.batches.length === 0) ? (
+                                        <div className="batch-row flex-between" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                                            <span>🗓️ {(item as any).expiryDate || '永久有效'}</span>
+                                            <span>{item.totalQuantity || (item as any).quantity} {item.unit}</span>
+                                        </div>
+                                    ) : (
+                                        item.batches.map(b => (
+                                            <div key={b.id} className="batch-row flex-between" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '4px', alignItems: 'center' }}>
+                                                <span>🗓️ {b.expiryDate || '永久有效'}</span>
+                                                {editingBatch?.itemId === item.id && editingBatch?.batchId === b.id ? (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            step="0.1"
+                                                            style={{ width: '70px', padding: '0.2rem', fontSize: '0.9rem' }}
+                                                            value={tempBatchQty === 0 && tempBatchQty.toString() !== "0" ? "" : tempBatchQty}
+                                                            onChange={e => setTempBatchQty(parseFloat(e.target.value) || 0)}
+                                                        />
+                                                        <button className="icon-btn" onClick={() => {
+                                                            updateBatchQuantity(item.id, b.id, tempBatchQty);
+                                                            setEditingBatch(null);
+                                                        }} style={{ color: 'var(--brand-primary)', padding: '4px' }}>✓</button>
+                                                        <button className="icon-btn delete-btn" onClick={() => setEditingBatch(null)} style={{ padding: '4px' }}>✕</button>
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <span>{b.quantity} {item.unit}</span>
+                                                        <button className="icon-btn" onClick={() => {
+                                                            setEditingBatch({ itemId: item.id, batchId: b.id });
+                                                            setTempBatchQty(b.quantity);
+                                                        }} style={{ padding: '2px', color: 'var(--text-secondary)' }}><Edit size={14} /></button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
                 {filteredItems.length === 0 && (
                     <div className="empty-state glass">
                         <p>未找到任何物品。</p>
@@ -307,14 +371,36 @@ export function Inventory() {
 
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label>分类</label>
-                                    <select value={formData.category} onChange={e => {
-                                        const cat = e.target.value;
-                                        setFormData({ ...formData, category: cat, unit: CATEGORY_UNIT_MAP[cat] || '个' });
+                                    <label>一级类别</label>
+                                    <select value={formData.mainCategory} onChange={e => {
+                                        const mainCat = e.target.value;
+                                        const subCat = Object.keys(CATEGORY_HIERARCHY[mainCat])[0];
+                                        setFormData({
+                                            ...formData,
+                                            mainCategory: mainCat,
+                                            subCategory: subCat,
+                                            unit: CATEGORY_HIERARCHY[mainCat][subCat]
+                                        });
                                     }}>
-                                        {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                        {MAIN_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                                     </select>
                                 </div>
+                                <div className="form-group">
+                                    <label>二级类别</label>
+                                    <select value={formData.subCategory} onChange={e => {
+                                        const subCat = e.target.value;
+                                        setFormData({
+                                            ...formData,
+                                            subCategory: subCat,
+                                            unit: CATEGORY_HIERARCHY[formData.mainCategory][subCat]
+                                        });
+                                    }}>
+                                        {Object.keys(CATEGORY_HIERARCHY[formData.mainCategory] || {}).map(c => <option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="form-row">
                                 {editingItem && (
                                     <div className="form-group">
                                         <label>当前总数量</label>
@@ -325,8 +411,8 @@ export function Inventory() {
 
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label>单位 (根据分类自动带出)</label>
-                                    <input required type="text" value={formData.unit} disabled={!editingItem} onChange={e => setFormData({ ...formData, unit: e.target.value })} />
+                                    <label>管理单位 (根据分类自动带出)</label>
+                                    <input required type="text" value={formData.unit} disabled={true} onChange={e => setFormData({ ...formData, unit: e.target.value })} />
                                 </div>
                                 <div className="form-group">
                                     <label>低库存警报线 {(!editingItem && items.some(i => i.name === formData.name)) ? '(跟随同名已有设置)' : ''}</label>
@@ -410,35 +496,38 @@ export function Inventory() {
                             </div>
                         </form>
                     </div>
-                </div>
-            )}
-            {isStockUpModalOpen && stockUpItemData && (
-                <div className="modal-overlay" onClick={() => setIsStockUpModalOpen(false)}>
-                    <div className="glass modal-content" onClick={e => e.stopPropagation()}>
-                        <h2 className="modal-title">进货: {stockUpItemData.name}</h2>
-                        <form onSubmit={(e) => {
-                            e.preventDefault();
-                            stockUpItem(stockUpItemData.id, stockUpFormData.quantity, stockUpFormData.expiryDate || undefined);
-                            setIsStockUpModalOpen(false);
-                        }} className="item-form">
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label>新增数量 ({stockUpItemData.unit})</label>
-                                    <input required type="number" min="0.1" step="0.1" value={stockUpFormData.quantity || ''} onChange={e => setStockUpFormData({ ...stockUpFormData, quantity: parseFloat(e.target.value) || 0 })} />
+                </div >
+            )
+            }
+            {
+                isStockUpModalOpen && stockUpItemData && (
+                    <div className="modal-overlay" onClick={() => setIsStockUpModalOpen(false)}>
+                        <div className="glass modal-content" onClick={e => e.stopPropagation()}>
+                            <h2 className="modal-title">进货: {stockUpItemData.name}</h2>
+                            <form onSubmit={(e) => {
+                                e.preventDefault();
+                                stockUpItem(stockUpItemData.id, stockUpFormData.quantity, stockUpFormData.expiryDate || undefined);
+                                setIsStockUpModalOpen(false);
+                            }} className="item-form">
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>新增数量 ({stockUpItemData.unit})</label>
+                                        <input required type="number" min="0.1" step="0.1" value={stockUpFormData.quantity || ''} onChange={e => setStockUpFormData({ ...stockUpFormData, quantity: parseFloat(e.target.value) || 0 })} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>此批次保质期 (可选)</label>
+                                        <input type="date" value={stockUpFormData.expiryDate} onChange={e => setStockUpFormData({ ...stockUpFormData, expiryDate: e.target.value })} />
+                                    </div>
                                 </div>
-                                <div className="form-group">
-                                    <label>此批次保质期 (可选)</label>
-                                    <input type="date" value={stockUpFormData.expiryDate} onChange={e => setStockUpFormData({ ...stockUpFormData, expiryDate: e.target.value })} />
+                                <div className="modal-actions">
+                                    <button type="button" className="btn-cancel" onClick={() => setIsStockUpModalOpen(false)}>取消</button>
+                                    <button type="submit" className="btn-primary">确认进货</button>
                                 </div>
-                            </div>
-                            <div className="modal-actions">
-                                <button type="button" className="btn-cancel" onClick={() => setIsStockUpModalOpen(false)}>取消</button>
-                                <button type="submit" className="btn-primary">确认进货</button>
-                            </div>
-                        </form>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }
