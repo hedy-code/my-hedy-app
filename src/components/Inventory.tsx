@@ -364,7 +364,7 @@ export function Inventory() {
                                     }} />
                                 </div>
                                 <div className="form-group">
-                                    <label>规格 (必填，默认规格)</label>
+                                    <label>规格 (必填)</label>
                                     <input required type="text" value={formData.specification} onChange={e => setFormData({ ...formData, specification: e.target.value })} />
                                 </div>
                             </div>
