@@ -8,7 +8,7 @@ import './Inventory.css';
 const CATEGORIES: ItemCategory[] = ['食品', '清洁用品', '个人护理', '卫浴用品', '其他'];
 
 export function Inventory() {
-    const { items, addItem, updateItem, deleteItem, consumeItem, stockUpItem } = useInventory();
+    const { items, addItem, updateItem, deleteItem, consumeItem, stockUpItem, updateBatchQuantity } = useInventory();
 
     const [search, setSearch] = useState('');
     const [filterCategory, setFilterCategory] = useState<string>('All');
@@ -16,6 +16,9 @@ export function Inventory() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
     const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+    const [editingBatch, setEditingBatch] = useState<{ itemId: string, batchId: string } | null>(null);
+    const [tempBatchQty, setTempBatchQty] = useState<number>(0);
 
     const toggleExpand = (id: string) => {
         const next = new Set(expandedItems);
@@ -201,9 +204,33 @@ export function Inventory() {
                                     </div>
                                 ) : (
                                     item.batches.map(b => (
-                                        <div key={b.id} className="batch-row flex-between" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                                        <div key={b.id} className="batch-row flex-between" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '4px', alignItems: 'center' }}>
                                             <span>🗓️ {b.expiryDate || '永久有效'}</span>
-                                            <span>{b.quantity} {item.unit}</span>
+                                            {editingBatch?.itemId === item.id && editingBatch?.batchId === b.id ? (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.1"
+                                                        style={{ width: '70px', padding: '0.2rem', fontSize: '0.9rem' }}
+                                                        value={tempBatchQty === 0 && tempBatchQty.toString() !== "0" ? "" : tempBatchQty}
+                                                        onChange={e => setTempBatchQty(parseFloat(e.target.value) || 0)}
+                                                    />
+                                                    <button className="icon-btn" onClick={() => {
+                                                        updateBatchQuantity(item.id, b.id, tempBatchQty);
+                                                        setEditingBatch(null);
+                                                    }} style={{ color: 'var(--brand-primary)', padding: '4px' }}>✓</button>
+                                                    <button className="icon-btn delete-btn" onClick={() => setEditingBatch(null)} style={{ padding: '4px' }}>✕</button>
+                                                </div>
+                                            ) : (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <span>{b.quantity} {item.unit}</span>
+                                                    <button className="icon-btn" onClick={() => {
+                                                        setEditingBatch({ itemId: item.id, batchId: b.id });
+                                                        setTempBatchQty(b.quantity);
+                                                    }} style={{ padding: '2px', color: 'var(--text-secondary)' }}><Edit size={14} /></button>
+                                                </div>
+                                            )}
                                         </div>
                                     ))
                                 )}

@@ -222,6 +222,33 @@ export function useInventory() {
         await logActivity(id, item.name, 'stock_up', amount);
     };
 
+    const updateBatchQuantity = async (id: string, batchId: string, newQuantity: number) => {
+        const item = items.find((i) => i.id === id);
+        if (!item || !item.batches) return;
+
+        let newBatches = [...item.batches];
+        const oldBatch = newBatches.find(b => b.id === batchId);
+        const oldQuantity = oldBatch ? oldBatch.quantity : 0;
+
+        if (newQuantity <= 0) {
+            newBatches = newBatches.filter(b => b.id !== batchId);
+        } else {
+            newBatches = newBatches.map(b =>
+                b.id === batchId ? { ...b, quantity: newQuantity } : b
+            );
+        }
+
+        const newTotalQuantity = newBatches.reduce((sum, b) => sum + (Number(b.quantity) || 0), 0);
+
+        await updateItem(id, {
+            totalQuantity: newTotalQuantity,
+            batches: newBatches
+        });
+
+        const diff = newQuantity - oldQuantity;
+        await logActivity(id, item.name, 'edit', diff);
+    };
+
     const toggleShoppingItem = async (id: string) => {
         if (!user) return;
         const shopItem = shoppingList.find(s => s.id === id);
@@ -272,6 +299,7 @@ export function useInventory() {
         deleteItem,
         consumeItem,
         stockUpItem,
+        updateBatchQuantity,
         toggleShoppingItem,
         unboughtShoppingCount: shoppingList.filter((s) => !s.isBought).length,
         lowStockItems: items.filter((i) => i.totalQuantity <= i.lowStockThreshold),
