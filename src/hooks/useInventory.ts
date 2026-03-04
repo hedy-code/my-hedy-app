@@ -281,7 +281,7 @@ export function useInventory() {
                         updatedAt: new Date().toISOString()
                     });
 
-                    if (invItem.totalQuantity + addedAmount >= invItem.lowStockThreshold && newBought) {
+                    if (invItem.totalQuantity + addedAmount > invItem.lowStockThreshold && newBought) {
                         // Delete from shopping list if new quantity is sufficient
                         batch.delete(docRef);
                     } else {
