@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useInventory } from '../hooks/useInventory';
-import type { InventoryItem, ItemCategory } from '../types';
+import type { InventoryItem } from '../types';
+import { CATEGORY_UNIT_MAP } from '../types';
 import { Plus, Search, Filter, Minus, Edit, Trash2, AlertCircle } from 'lucide-react';
 import { isBefore, addDays, parseISO } from 'date-fns';
 import './Inventory.css';
 
-const CATEGORIES: ItemCategory[] = ['食品', '清洁用品', '个人护理', '卫浴用品', '其他'];
+const CATEGORIES: string[] = Object.keys(CATEGORY_UNIT_MAP);
 
 export function Inventory() {
     const { items, addItem, updateItem, deleteItem, consumeItem, stockUpItem, updateBatchQuantity } = useInventory();
@@ -38,21 +39,30 @@ export function Inventory() {
     // Form state
     const [formData, setFormData] = useState({
         name: '',
-        category: '食品' as ItemCategory,
-        unit: 'pcs',
-        lowStockThreshold: 1,
+        specification: '默认规格',
+        category: CATEGORIES[0],
+        unit: CATEGORY_UNIT_MAP[CATEGORIES[0]],
+        lowStockThreshold: 1 as number | undefined,
         batches: [{ id: crypto.randomUUID(), quantity: 1, expiryDate: '' }]
     });
 
     const filteredItems = items.filter(item => {
-        const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase());
+        const specText = item.specification || '默认规格';
+        const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase()) || specText.toLowerCase().includes(search.toLowerCase());
         const matchesCategory = filterCategory === 'All' || item.category === filterCategory;
         return matchesSearch && matchesCategory;
     });
 
     const handleOpenAdd = () => {
         setEditingItem(null);
-        setFormData({ name: '', category: '食品', unit: 'pcs', lowStockThreshold: 1, batches: [{ id: crypto.randomUUID(), quantity: 1, expiryDate: '' }] });
+        setFormData({
+            name: '',
+            specification: '默认规格',
+            category: CATEGORIES[0],
+            unit: CATEGORY_UNIT_MAP[CATEGORIES[0]],
+            lowStockThreshold: 1,
+            batches: [{ id: crypto.randomUUID(), quantity: 1, expiryDate: '' }]
+        });
         setIsModalOpen(true);
     };
 
@@ -60,6 +70,7 @@ export function Inventory() {
         setEditingItem(item);
         setFormData({
             name: item.name,
+            specification: item.specification || '默认规格',
             category: item.category,
             unit: item.unit,
             lowStockThreshold: item.lowStockThreshold,
@@ -70,12 +81,31 @@ export function Inventory() {
 
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validation for new item
+        if (!editingItem) {
+            const specToSave = formData.specification || '默认规格';
+            const exactMatch = items.find(i => i.name === formData.name && (i.specification || '默认规格') === specToSave);
+            if (exactMatch) {
+                alert(`保存失败！此【名称】${formData.name} + 【规格】${specToSave} 已经存在！\n请通过卡片上的[进货]功能来增加数量。`);
+                return;
+            }
+            const nameMatch = items.find(i => i.name === formData.name);
+            if (nameMatch) {
+                const existingSpecs = items.filter(i => i.name === formData.name).map(i => i.specification || '默认规格').join('、');
+                if (!window.confirm(`此【${formData.name}】已记录过以下规格：\n${existingSpecs}\n\n请确认是否为您所要添加的全新规格？`)) {
+                    return;
+                }
+            }
+        }
+
         if (editingItem) {
             updateItem(editingItem.id, {
                 name: formData.name,
+                specification: formData.specification || '默认规格',
                 category: formData.category,
                 unit: formData.unit,
-                lowStockThreshold: formData.lowStockThreshold,
+                lowStockThreshold: formData.lowStockThreshold || 0,
             });
         } else {
             const totalQuantity = formData.batches.reduce((sum, b) => sum + (Number(b.quantity) || 0), 0);
@@ -88,10 +118,11 @@ export function Inventory() {
 
             addItem({
                 name: formData.name,
+                specification: formData.specification || '默认规格',
                 category: formData.category,
                 totalQuantity,
                 unit: formData.unit,
-                lowStockThreshold: formData.lowStockThreshold,
+                lowStockThreshold: formData.lowStockThreshold || 0,
                 batches: validBatches
             });
         }
@@ -149,7 +180,12 @@ export function Inventory() {
                             )}
                         </div>
 
-                        <h3 className="item-name">{item.name}</h3>
+                        <h3 className="item-name">
+                            {item.name}
+                            <span style={{ fontSize: '0.75em', color: 'var(--text-secondary)', marginLeft: '8px', fontWeight: 'normal' }}>
+                                [{item.specification || '默认规格'}]
+                            </span>
+                        </h3>
 
                         <div className="item-qty-display">
                             <span className="qty-value">{item.totalQuantity}</span>
@@ -250,15 +286,32 @@ export function Inventory() {
                     <div className="glass modal-content" onClick={e => e.stopPropagation()}>
                         <h2 className="modal-title">{editingItem ? '编辑物品' : '新增物品'}</h2>
                         <form onSubmit={handleSave} className="item-form">
-                            <div className="form-group">
-                                <label>名称</label>
-                                <input required type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>名称</label>
+                                    <input required type="text" value={formData.name} onChange={e => {
+                                        const newName = e.target.value;
+                                        const existing = items.find(i => i.name === newName);
+                                        setFormData({
+                                            ...formData,
+                                            name: newName,
+                                            lowStockThreshold: (!editingItem && existing) ? existing.lowStockThreshold : formData.lowStockThreshold
+                                        });
+                                    }} />
+                                </div>
+                                <div className="form-group">
+                                    <label>规格 (必填，默认规格)</label>
+                                    <input required type="text" value={formData.specification} onChange={e => setFormData({ ...formData, specification: e.target.value })} />
+                                </div>
                             </div>
 
                             <div className="form-row">
                                 <div className="form-group">
                                     <label>分类</label>
-                                    <select value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value as ItemCategory })}>
+                                    <select value={formData.category} onChange={e => {
+                                        const cat = e.target.value;
+                                        setFormData({ ...formData, category: cat, unit: CATEGORY_UNIT_MAP[cat] || '个' });
+                                    }}>
                                         {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                                     </select>
                                 </div>
@@ -272,12 +325,20 @@ export function Inventory() {
 
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label>单位 (个, 毫升, 克 等)</label>
-                                    <input required type="text" value={formData.unit} onChange={e => setFormData({ ...formData, unit: e.target.value })} />
+                                    <label>单位 (根据分类自动带出)</label>
+                                    <input required type="text" value={formData.unit} disabled={!editingItem} onChange={e => setFormData({ ...formData, unit: e.target.value })} />
                                 </div>
                                 <div className="form-group">
-                                    <label>低库存警报线</label>
-                                    <input required type="number" min="0" step="0.1" value={formData.lowStockThreshold} onChange={e => setFormData({ ...formData, lowStockThreshold: parseFloat(e.target.value) })} />
+                                    <label>低库存警报线 {(!editingItem && items.some(i => i.name === formData.name)) ? '(跟随同名已有设置)' : ''}</label>
+                                    <input
+                                        required
+                                        type="number"
+                                        min="0"
+                                        step="0.1"
+                                        value={formData.lowStockThreshold === undefined ? '' : formData.lowStockThreshold}
+                                        disabled={!editingItem && items.some(i => i.name === formData.name)}
+                                        onChange={e => setFormData({ ...formData, lowStockThreshold: e.target.value === '' ? undefined : parseFloat(e.target.value) })}
+                                    />
                                 </div>
                             </div>
 

@@ -89,6 +89,7 @@ export function useInventory() {
         if (!user) return;
         const newItem: InventoryItem = {
             ...itemData,
+            specification: itemData.specification || '默认规格',
             id: generateId(),
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -149,6 +150,7 @@ export function useInventory() {
             id: generateId(),
             itemId: item.id,
             customName: item.name,
+            specification: item.specification || '默认规格',
             category: item.category,
             quantityNeeded: Math.max(1, item.lowStockThreshold * 2),
             isBought: false,
@@ -249,7 +251,7 @@ export function useInventory() {
         await logActivity(id, item.name, 'edit', diff);
     };
 
-    const toggleShoppingItem = async (id: string) => {
+    const toggleShoppingItem = async (id: string, customQuantity?: number, expiryDate?: string) => {
         if (!user) return;
         const shopItem = shoppingList.find(s => s.id === id);
         if (!shopItem) return;
@@ -261,18 +263,22 @@ export function useInventory() {
             const docRef = doc(db, 'users', user.uid, 'shopping', id);
             batch.update(docRef, { isBought: newBought, updatedAt: new Date().toISOString() });
 
+            let addedAmount = 0;
+
             if (newBought && shopItem.itemId) {
                 const invItem = items.find((i) => i.id === shopItem.itemId);
                 if (invItem) {
+                    addedAmount = customQuantity !== undefined ? customQuantity : shopItem.quantityNeeded;
                     const itemRef = doc(db, 'users', user.uid, 'items', invItem.id);
                     const newBatch = {
                         id: generateId(),
-                        quantity: shopItem.quantityNeeded,
+                        quantity: addedAmount,
+                        expiryDate: expiryDate || undefined,
                         addedAt: new Date().toISOString()
                     };
                     batch.update(itemRef, {
-                        totalQuantity: invItem.totalQuantity + shopItem.quantityNeeded,
-                        batches: [...invItem.batches, newBatch],
+                        totalQuantity: invItem.totalQuantity + addedAmount,
+                        batches: [...(invItem.batches || []), newBatch],
                         updatedAt: new Date().toISOString()
                     });
                 }
@@ -280,8 +286,8 @@ export function useInventory() {
 
             await batch.commit();
 
-            if (newBought && shopItem.itemId) {
-                await logActivity(shopItem.itemId, shopItem.customName, 'stock_up', shopItem.quantityNeeded);
+            if (newBought && shopItem.itemId && addedAmount > 0) {
+                await logActivity(shopItem.itemId, shopItem.customName, 'stock_up', addedAmount);
             }
 
         } catch (error) {
