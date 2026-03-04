@@ -13,7 +13,13 @@ export function ShoppingList() {
     const [checkoutForm, setCheckoutForm] = useState({ quantity: 1, expiryDate: '' });
 
     const toBuy = shoppingList.filter(s => !s.isBought);
-    const bought = shoppingList.filter(s => s.isBought);
+    const bought = shoppingList
+        .filter(s => s.isBought)
+        .sort((a, b) => {
+            const timeA = new Date(a.purchasedAt || a.createdAt).getTime();
+            const timeB = new Date(b.purchasedAt || b.createdAt).getTime();
+            return timeB - timeA;
+        });
 
     const handleToggle = (item: ShoppingItem) => {
         if (!item.isBought) {
