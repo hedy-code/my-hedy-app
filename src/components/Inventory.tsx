@@ -49,7 +49,9 @@ export function Inventory() {
 
     const filteredItems = items.filter(item => {
         const specText = item.specification || '默认规格';
-        const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase()) || specText.toLowerCase().includes(search.toLowerCase());
+        const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase()) ||
+            specText.toLowerCase().includes(search.toLowerCase()) ||
+            item.category.toLowerCase().includes(search.toLowerCase());
         // Split legacy categories for backwards compatibility search
         const itemMainCategory = item.category.includes('-') ? item.category.split('-')[0] : item.category;
         const matchesCategory = filterCategory === 'All' || itemMainCategory === filterCategory;
