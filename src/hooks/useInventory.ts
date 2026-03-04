@@ -289,19 +289,20 @@ export function useInventory() {
                         updatedAt: new Date().toISOString()
                     });
 
-                    if (invItem.totalQuantity + addedAmount > invItem.lowStockThreshold && newBought) {
-                        // Delete from shopping list if new quantity is sufficient
-                        batch.delete(docRef);
-                    } else {
-                        // Otherwise just mark as bought
-                        batch.update(docRef, { isBought: newBought, updatedAt: new Date().toISOString() });
-                    }
-                } else {
-                    batch.update(docRef, { isBought: newBought, updatedAt: new Date().toISOString() });
                 }
-            } else {
-                batch.update(docRef, { isBought: newBought, updatedAt: new Date().toISOString() });
             }
+
+            const updatePayload: Partial<ShoppingItem> & { updatedAt: string } = {
+                isBought: newBought,
+                updatedAt: new Date().toISOString()
+            };
+
+            if (newBought) {
+                updatePayload.purchasedQuantity = addedAmount || shopItem.quantityNeeded;
+                updatePayload.purchasedAt = new Date().toISOString();
+            }
+
+            batch.update(docRef, updatePayload);
 
             await batch.commit();
 

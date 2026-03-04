@@ -82,4 +82,6 @@ export interface ShoppingItem {
     quantityNeeded: number;
     isBought: boolean;
     createdAt: string;         // ISO timestamp
+    purchasedQuantity?: number;
+    purchasedAt?: string;      // ISO timestamp
 }

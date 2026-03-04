@@ -84,12 +84,16 @@ export function ShoppingList() {
                                         <CheckCircle size={24} />
                                     </button>
                                     <div className="list-item-content">
-                                        <span className="item-name">
+                                        <div className="item-name">
                                             {item.customName}
                                             <span style={{ fontSize: '0.75em', color: 'var(--text-secondary)', marginLeft: '8px', fontWeight: 'normal' }}>
                                                 [{item.specification || '默认规格'}]
                                             </span>
-                                        </span>
+                                        </div>
+                                        <div className="item-meta" style={{ marginTop: '4px', display: 'flex', gap: '16px', fontSize: '0.85rem' }}>
+                                            <span>数量: {item.purchasedQuantity || item.quantityNeeded}</span>
+                                            {item.purchasedAt && <span>日期: {new Date(item.purchasedAt).toLocaleDateString()}</span>}
+                                        </div>
                                     </div>
                                 </div>
                             ))}
