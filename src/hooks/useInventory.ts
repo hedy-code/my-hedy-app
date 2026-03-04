@@ -212,10 +212,6 @@ export function useInventory() {
 
         await updateItem(id, { totalQuantity: newTotalQuantity, batches: newBatches });
         await logActivity(id, item.name, 'consume', -actualAmount);
-
-        if (newTotalQuantity <= item.lowStockThreshold) {
-            await addToShoppingListIfMissing(item, newTotalQuantity);
-        }
     };
 
     const stockUpItem = async (id: string, amount: number, expiryDate?: string) => {
@@ -261,10 +257,6 @@ export function useInventory() {
 
         const diff = newQuantity - oldQuantity;
         await logActivity(id, item.name, 'edit', diff);
-
-        if (newTotalQuantity <= item.lowStockThreshold && diff < 0) {
-            await addToShoppingListIfMissing(item, newTotalQuantity);
-        }
     };
 
     const toggleShoppingItem = async (id: string, customQuantity?: number, expiryDate?: string) => {
