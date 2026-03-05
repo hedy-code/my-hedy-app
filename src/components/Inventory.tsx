@@ -9,7 +9,7 @@ import './Inventory.css';
 const MAIN_CATEGORIES: string[] = Object.keys(CATEGORY_HIERARCHY);
 
 export function Inventory() {
-    const { items, addItem, updateItem, deleteItem, consumeItem, stockUpItem, updateBatchQuantity } = useInventory();
+    const { items, addItem, updateItem, deleteItem, consumeItem, stockUpItem } = useInventory();
 
     const [search, setSearch] = useState('');
     const [filterCategory, setFilterCategory] = useState<string>('All');
@@ -18,8 +18,6 @@ export function Inventory() {
     const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
     const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
-    const [editingBatch, setEditingBatch] = useState<{ itemId: string, batchId: string } | null>(null);
-    const [tempBatchQty, setTempBatchQty] = useState<number>(0);
 
     const toggleExpand = (id: string) => {
         const next = new Set(expandedItems);
@@ -44,7 +42,7 @@ export function Inventory() {
         subCategory: Object.keys(CATEGORY_HIERARCHY[MAIN_CATEGORIES[0]])[0],
         unit: CATEGORY_HIERARCHY[MAIN_CATEGORIES[0]][Object.keys(CATEGORY_HIERARCHY[MAIN_CATEGORIES[0]])[0]],
         lowStockThreshold: 1 as number | undefined,
-        batches: [{ id: crypto.randomUUID(), quantity: 1, expiryDate: '' }]
+        batches: [{ id: crypto.randomUUID(), quantity: 1, expiryDate: '' }] as any[]
     });
 
     const filteredItems = items.filter(item => {
@@ -108,8 +106,8 @@ export function Inventory() {
             mainCategory: initialMain,
             subCategory: initialSub,
             unit: item.unit,
-            lowStockThreshold: item.lowStockThreshold,
-            batches: [] // Editing batches is not supported in the basic edit form
+            lowStockThreshold: item.lowStockThreshold || 0,
+            batches: item.batches ? [...item.batches] : []
         });
         setIsModalOpen(true);
     };
@@ -135,6 +133,14 @@ export function Inventory() {
             }
         }
 
+        const totalQuantity = formData.batches.reduce((sum: number, b: any) => sum + (Number(b.quantity) || 0), 0);
+        const validBatches = formData.batches.map((b: any) => ({
+            id: b.id || crypto.randomUUID(),
+            quantity: Number(b.quantity) || 0,
+            ...(b.expiryDate ? { expiryDate: b.expiryDate } : {}),
+            addedAt: b.addedAt || new Date().toISOString()
+        }));
+
         if (editingItem) {
             updateItem(editingItem.id, {
                 name: formData.name,
@@ -142,16 +148,10 @@ export function Inventory() {
                 category: `${formData.mainCategory}-${formData.subCategory}`,
                 unit: formData.unit,
                 lowStockThreshold: formData.lowStockThreshold || 0,
+                batches: validBatches,
+                totalQuantity,
             });
         } else {
-            const totalQuantity = formData.batches.reduce((sum, b) => sum + (Number(b.quantity) || 0), 0);
-            const validBatches = formData.batches.map(b => ({
-                id: crypto.randomUUID(),
-                quantity: Number(b.quantity) || 0,
-                ...(b.expiryDate ? { expiryDate: b.expiryDate } : {}),
-                addedAt: new Date().toISOString()
-            }));
-
             addItem({
                 name: formData.name,
                 specification: formData.specification || '默认规格',
@@ -308,34 +308,10 @@ export function Inventory() {
                                             <span>{item.totalQuantity || (item as any).quantity} {item.unit}</span>
                                         </div>
                                     ) : (
-                                        item.batches.map(b => (
-                                            <div key={b.id} className="batch-row flex-between" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '4px', alignItems: 'center' }}>
+                                        item.batches.map((b, index) => (
+                                            <div key={b.id || `batch-${index}`} className="batch-row flex-between" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '4px', alignItems: 'center' }}>
                                                 <span>🗓️ {b.expiryDate || '暂无'}</span>
-                                                {editingBatch?.itemId === item.id && editingBatch?.batchId === b.id ? (
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            step="0.1"
-                                                            style={{ width: '70px', padding: '0.2rem', fontSize: '0.9rem' }}
-                                                            value={tempBatchQty === 0 && tempBatchQty.toString() !== "0" ? "" : tempBatchQty}
-                                                            onChange={e => setTempBatchQty(parseFloat(e.target.value) || 0)}
-                                                        />
-                                                        <button className="icon-btn" onClick={() => {
-                                                            updateBatchQuantity(item.id, b.id, tempBatchQty);
-                                                            setEditingBatch(null);
-                                                        }} style={{ color: 'var(--brand-primary)', padding: '4px' }}>✓</button>
-                                                        <button className="icon-btn delete-btn" onClick={() => setEditingBatch(null)} style={{ padding: '4px' }}>✕</button>
-                                                    </div>
-                                                ) : (
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                        <span>{b.quantity} {item.unit}</span>
-                                                        <button className="icon-btn" onClick={() => {
-                                                            setEditingBatch({ itemId: item.id, batchId: b.id });
-                                                            setTempBatchQty(b.quantity);
-                                                        }} style={{ padding: '2px', color: 'var(--text-secondary)' }}><Edit size={14} /></button>
-                                                    </div>
-                                                )}
+                                                <span>{b.quantity} {item.unit}</span>
                                             </div>
                                         ))
                                     )}
@@ -434,67 +410,65 @@ export function Inventory() {
                                 </div>
                             </div>
 
-                            {!editingItem && (
-                                <div className="form-group batches-group">
-                                    <label>录入批次 (数量 & 保质期)</label>
-                                    {formData.batches.map((batch, index) => (
-                                        <div key={batch.id} className="batch-input-row flex-between" style={{ marginBottom: '8px', gap: '8px' }}>
-                                            <input
-                                                type="number"
-                                                min="0.1"
-                                                step="0.1"
-                                                required
-                                                value={batch.quantity || ''}
-                                                onChange={e => {
-                                                    const newBatches = [...formData.batches];
-                                                    newBatches[index].quantity = parseFloat(e.target.value) || 0;
+                            <div className="form-group batches-group">
+                                <label>录入批次 (数量 & 保质期)</label>
+                                {formData.batches.map((batch, index) => (
+                                    <div key={batch.id} className="batch-input-row flex-between" style={{ marginBottom: '8px', gap: '8px' }}>
+                                        <input
+                                            type="number"
+                                            min="0.1"
+                                            step="0.1"
+                                            required
+                                            value={batch.quantity || ''}
+                                            onChange={e => {
+                                                const newBatches = [...formData.batches];
+                                                newBatches[index].quantity = parseFloat(e.target.value) || 0;
+                                                setFormData({ ...formData, batches: newBatches });
+                                            }}
+                                            style={{ width: '80px' }}
+                                            placeholder="数量"
+                                        />
+                                        <input
+                                            type="date"
+                                            value={batch.expiryDate}
+                                            onChange={e => {
+                                                const newBatches = [...formData.batches];
+                                                newBatches[index].expiryDate = e.target.value;
+                                                setFormData({ ...formData, batches: newBatches });
+                                            }}
+                                            style={{ flex: 1 }}
+                                        />
+                                        {formData.batches.length > 1 && (
+                                            <button
+                                                type="button"
+                                                className="icon-btn delete-btn"
+                                                onClick={() => {
+                                                    const newBatches = formData.batches.filter((_, i) => i !== index);
                                                     setFormData({ ...formData, batches: newBatches });
                                                 }}
-                                                style={{ width: '80px' }}
-                                                placeholder="数量"
-                                            />
-                                            <input
-                                                type="date"
-                                                value={batch.expiryDate}
-                                                onChange={e => {
-                                                    const newBatches = [...formData.batches];
-                                                    newBatches[index].expiryDate = e.target.value;
-                                                    setFormData({ ...formData, batches: newBatches });
-                                                }}
-                                                style={{ flex: 1 }}
-                                            />
-                                            {formData.batches.length > 1 && (
-                                                <button
-                                                    type="button"
-                                                    className="icon-btn delete-btn"
-                                                    onClick={() => {
-                                                        const newBatches = formData.batches.filter((_, i) => i !== index);
-                                                        setFormData({ ...formData, batches: newBatches });
-                                                    }}
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
-                                    <button
-                                        type="button"
-                                        className="btn-secondary"
-                                        style={{ width: '100%', marginTop: '8px', fontSize: '0.9rem', padding: '0.5rem' }}
-                                        onClick={() => {
-                                            setFormData({
-                                                ...formData,
-                                                batches: [...formData.batches, { id: crypto.randomUUID(), quantity: 1, expiryDate: '' }]
-                                            });
-                                        }}
-                                    >
-                                        + 添加另一批次
-                                    </button>
-                                    <div style={{ marginTop: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                                        总计入库数量: {formData.batches.reduce((sum, b) => sum + (Number(b.quantity) || 0), 0)} {formData.unit}
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        )}
                                     </div>
+                                ))}
+                                <button
+                                    type="button"
+                                    className="btn-secondary"
+                                    style={{ width: '100%', marginTop: '8px', fontSize: '0.9rem', padding: '0.5rem' }}
+                                    onClick={() => {
+                                        setFormData({
+                                            ...formData,
+                                            batches: [...formData.batches, { id: crypto.randomUUID(), quantity: 1, expiryDate: '' }]
+                                        });
+                                    }}
+                                >
+                                    + 添加另一批次
+                                </button>
+                                <div style={{ marginTop: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                                    总计入库数量: {formData.batches.reduce((sum, b) => sum + (Number(b.quantity) || 0), 0)} {formData.unit}
                                 </div>
-                            )}
+                            </div>
 
                             <div className="modal-actions">
                                 <button type="button" className="btn-cancel" onClick={() => setIsModalOpen(false)}>取消</button>
@@ -505,6 +479,7 @@ export function Inventory() {
                 </div >
             )
             }
+
             {
                 isStockUpModalOpen && stockUpItemData && (
                     <div className="modal-overlay" onClick={() => setIsStockUpModalOpen(false)}>
