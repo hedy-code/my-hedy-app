@@ -374,7 +374,7 @@ export function Inventory() {
                                             <span>{item.totalQuantity || (item as any).quantity} {item.unit}</span>
                                         </div>
                                     ) : (
-                                        <div style={{ maxHeight: '110px', overflowY: 'auto', paddingRight: '4px' }}>
+                                        <div className="batches-scroll-area">
                                             {item.batches.map((b, index) => (
                                                 <div key={b.id || `batch-${index}`} className="batch-row flex-between" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '6px', alignItems: 'center' }}>
                                                     <span>🗓️ {b.expiryDate || '暂无'}</span>
