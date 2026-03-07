@@ -1,6 +1,7 @@
 import { useInventory } from '../hooks/useInventory';
 import { CalendarOff, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { differenceInDays, parseISO, isBefore, addDays } from 'date-fns';
+import { useState } from 'react';
 import './Expirations.css';
 
 export function Expirations() {
@@ -16,6 +17,17 @@ export function Expirations() {
                 itemUnit: item.unit
             }))
     ).sort((a, b) => new Date(a.expiryDate!).getTime() - new Date(b.expiryDate!).getTime());
+
+    const [filterStart, setFilterStart] = useState('');
+    const [filterEnd, setFilterEnd] = useState('');
+
+    const filteredBatches = allExpiryBatches.filter(batch => {
+        if (!batch.expiryDate) return true;
+        const batchDate = batch.expiryDate;
+        if (filterStart && batchDate < filterStart) return false;
+        if (filterEnd && batchDate > filterEnd) return false;
+        return true;
+    });
 
     const getExpiryStatus = (dateStr: string) => {
         const expiryDate = parseISO(dateStr);
@@ -39,14 +51,33 @@ export function Expirations() {
             </header>
 
             <div className="glass expirations-container">
-                {allExpiryBatches.length === 0 ? (
+                <div className="filters-bar" style={{ marginBottom: '1.5rem', background: 'transparent', padding: 0, boxShadow: 'none' }}>
+                    <div className="filter-group">
+                        <label>最早保质期</label>
+                        <input
+                            type="date"
+                            value={filterStart}
+                            onChange={e => setFilterStart(e.target.value)}
+                        />
+                    </div>
+                    <div className="filter-group">
+                        <label>最晚保质期</label>
+                        <input
+                            type="date"
+                            value={filterEnd}
+                            onChange={e => setFilterEnd(e.target.value)}
+                        />
+                    </div>
+                </div>
+
+                {filteredBatches.length === 0 ? (
                     <div className="empty-state">
                         <CalendarOff size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
-                        <p>没有正在追踪含保质期的物品批次。</p>
+                        <p>没有找到符合条件的保质期批次。</p>
                     </div>
                 ) : (
                     <div className="expiry-list">
-                        {allExpiryBatches.map(batch => {
+                        {filteredBatches.map(batch => {
                             const status = getExpiryStatus(batch.expiryDate!);
                             return (
                                 <div key={batch.id} className={`expiry-item ${status.colorClass}`}>
