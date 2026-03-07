@@ -134,6 +134,14 @@ export function Inventory() {
             }
         }
 
+        // Check for duplicate expiry dates
+        const expiryDates = formData.batches.map((b: any) => b.expiryDate || '暂无');
+        const uniqueDates = new Set(expiryDates);
+        if (uniqueDates.size !== expiryDates.length) {
+            alert("同一物品不允许包含完全相同保质期的批次！\n请将同保质期的数量合并，或修改为不同的保质期。");
+            return;
+        }
+
         const totalQuantity = formData.batches.reduce((sum: number, b: any) => sum + (Number(b.quantity) || 0), 0);
         const validBatches = formData.batches.map((b: any) => ({
             id: b.id || crypto.randomUUID(),
@@ -366,12 +374,14 @@ export function Inventory() {
                                             <span>{item.totalQuantity || (item as any).quantity} {item.unit}</span>
                                         </div>
                                     ) : (
-                                        item.batches.map((b, index) => (
-                                            <div key={b.id || `batch-${index}`} className="batch-row flex-between" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '4px', alignItems: 'center' }}>
-                                                <span>🗓️ {b.expiryDate || '暂无'}</span>
-                                                <span>{b.quantity} {item.unit}</span>
-                                            </div>
-                                        ))
+                                        <div style={{ maxHeight: '110px', overflowY: 'auto', paddingRight: '4px' }}>
+                                            {item.batches.map((b, index) => (
+                                                <div key={b.id || `batch-${index}`} className="batch-row flex-between" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '6px', alignItems: 'center' }}>
+                                                    <span>🗓️ {b.expiryDate || '暂无'}</span>
+                                                    <span>{b.quantity} {item.unit}</span>
+                                                </div>
+                                            ))}
+                                        </div>
                                     )}
                                 </div>
                             )}
