@@ -184,6 +184,25 @@
     cursor: not-allowed;
 }
 
+.btn-details {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+    border: none;
+    padding: 0.4rem 0.6rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.btn-details:hover {
+    background: var(--success);
+    color: white;
+}
+
 .secondary-actions {
     display: flex;
     gap: 0.5rem;
