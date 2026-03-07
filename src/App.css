@@ -60,6 +60,25 @@
   transform: translateY(-2px);
 }
 
+.btn-secondary {
+  background-color: var(--surface-2);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  padding: 0.875rem 1.5rem;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.btn-secondary:hover {
+  background-color: var(--border-color);
+  transform: translateY(-2px);
+}
+
 /* Animations */
 @keyframes fadeIn {
   from {
