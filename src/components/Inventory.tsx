@@ -345,7 +345,7 @@ export function Inventory() {
                                     </button>
 
                                     <button className="btn-secondary" onClick={() => toggleExpand(item.id)}>
-                                        详情
+                                        库存详情
                                     </button>
 
                                     <div className="secondary-actions">
@@ -360,7 +360,6 @@ export function Inventory() {
                             )}
                             {expandedItems.has(item.id) && !isBatchMode && (
                                 <div className="batches-panel">
-                                    <h4>批次详情</h4>
                                     {(!item.batches || item.batches.length === 0) ? (
                                         <div className="batch-row flex-between" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
                                             <span>🗓️ {(item as any).expiryDate || '暂无'}</span>
