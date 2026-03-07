@@ -164,12 +164,14 @@
     background: rgba(245, 158, 11, 0.1);
     color: var(--warning);
     border: none;
-    padding: 0.5rem 1rem;
+    padding: 0.4rem 0.6rem;
     border-radius: 8px;
     font-weight: 600;
+    font-size: 0.85rem;
+    white-space: nowrap;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.4rem;
 }
 
 .btn-consume:hover:not(:disabled) {
