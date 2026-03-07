@@ -155,6 +155,36 @@ export function useInventory() {
         }
     };
 
+    const deleteItems = async (ids: string[]) => {
+        if (!user || ids.length === 0) return;
+
+        try {
+            const batch = writeBatch(db);
+
+            // Note: logActivity happens outside the batch, which is fine for small numbers
+            for (const id of ids) {
+                const itemToDelete = items.find((i) => i.id === id);
+                if (itemToDelete) {
+                    await logActivity(itemToDelete.id, itemToDelete.name, 'delete', 0);
+                }
+
+                const itemRef = doc(db, 'users', user.uid, 'items', id);
+                batch.delete(itemRef);
+
+                const relatedShopping = shoppingList.find(s => s.itemId === id && !s.isBought);
+                if (relatedShopping) {
+                    const shopRef = doc(db, 'users', user.uid, 'shopping', relatedShopping.id);
+                    batch.delete(shopRef);
+                }
+            }
+
+            await batch.commit();
+
+        } catch (error) {
+            console.error("Error deleting items:", error);
+        }
+    };
+
     const addToShoppingListIfMissing = async (item: InventoryItem, currentQuantity: number) => {
         if (!user) return;
         const exists = shoppingList.find((s) => s.itemId === item.id && !s.isBought);
@@ -312,6 +342,7 @@ export function useInventory() {
         addItem,
         updateItem,
         deleteItem,
+        deleteItems,
         consumeItem,
         updateBatchQuantity,
         toggleShoppingItem,

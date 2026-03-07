@@ -9,14 +9,16 @@ import './Inventory.css';
 const MAIN_CATEGORIES: string[] = Object.keys(CATEGORY_HIERARCHY);
 
 export function Inventory() {
-    const { items, addItem, updateItem, deleteItem, consumeItem } = useInventory();
+    const { items, addItem, updateItem, deleteItem, deleteItems, consumeItem } = useInventory();
 
     const [search, setSearch] = useState('');
     const [filterCategory, setFilterCategory] = useState<string>('All');
-
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
     const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+    const [isBatchMode, setIsBatchMode] = useState(false);
+    const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
 
     const toggleExpand = (id: string) => {
@@ -172,9 +174,36 @@ export function Inventory() {
                     <h1 className="title">库存管理</h1>
                     <p className="subtitle">管理您家中的所有物品</p>
                 </div>
-                <button className="btn-primary" onClick={handleOpenAdd}>
-                    <Plus size={20} /> 新增物品
-                </button>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                    <button className={isBatchMode ? "btn-primary" : "btn-secondary"} onClick={() => {
+                        setIsBatchMode(!isBatchMode);
+                        setSelectedItems(new Set());
+                    }}>
+                        {isBatchMode ? '取消选择' : '批量操作'}
+                    </button>
+                    {!isBatchMode && (
+                        <button className="btn-primary" onClick={handleOpenAdd}>
+                            <Plus size={20} /> 新增物品
+                        </button>
+                    )}
+                    {isBatchMode && (
+                        <button
+                            className="btn-primary"
+                            style={{ backgroundColor: 'var(--danger-color)', opacity: selectedItems.size === 0 ? 0.5 : 1 }}
+                            onClick={() => {
+                                if (selectedItems.size === 0) return;
+                                if (window.confirm(`确定要彻底删除选中的 ${selectedItems.size} 个物品吗？操作不可恢复。`)) {
+                                    deleteItems(Array.from(selectedItems));
+                                    setIsBatchMode(false);
+                                    setSelectedItems(new Set());
+                                }
+                            }}
+                            disabled={selectedItems.size === 0}
+                        >
+                            <Trash2 size={20} /> 删除所选 ({selectedItems.size})
+                        </button>
+                    )}
+                </div>
             </header>
 
             <div className="filters-bar glass">
@@ -228,10 +257,34 @@ export function Inventory() {
                 {filteredItems.map(item => {
                     const hasLowStock = item.totalQuantity <= (item.lowStockThreshold || 0);
                     return (
-                        <div key={item.id} className={`glass item-card ${hasLowStock ? 'low-stock' : ''}`}>
+                        <div
+                            key={item.id}
+                            className={`glass item-card ${hasLowStock ? 'low-stock' : ''}`}
+                            onClick={() => {
+                                if (!isBatchMode) return;
+                                const next = new Set(selectedItems);
+                                if (next.has(item.id)) next.delete(item.id);
+                                else next.add(item.id);
+                                setSelectedItems(next);
+                            }}
+                            style={isBatchMode ? {
+                                cursor: 'pointer',
+                                border: selectedItems.has(item.id) ? '2px solid var(--primary-color)' : '2px solid transparent',
+                                transform: selectedItems.has(item.id) ? 'translateY(-2px)' : 'none',
+                                transition: 'all 0.2s ease',
+                                boxShadow: selectedItems.has(item.id) ? '0 8px 24px rgba(0, 122, 255, 0.2)' : 'var(--shadow-sm)'
+                            } : {}}
+                        >
                             <div className="item-card-header">
                                 <span className="category-tag">{item.category.replace('-', ' → ')}</span>
-                                {isExpiringSoon(item) && (
+                                {isBatchMode ? (
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedItems.has(item.id)}
+                                        readOnly
+                                        style={{ width: '18px', height: '18px', accentColor: 'var(--primary-color)' }}
+                                    />
+                                ) : isExpiringSoon(item) && (
                                     <span className="warning-tag" title="30天内过期">
                                         <AlertCircle size={14} /> 即将过期
                                     </span>
@@ -257,30 +310,31 @@ export function Inventory() {
                                 <p className="low-stock-msg">库存不足！</p>
                             )}
 
-                            <div className="item-actions">
-                                <button
-                                    className="btn-consume"
-                                    onClick={() => consumeItem(item.id, 1)}
-                                    disabled={item.totalQuantity === 0}
-                                >
-                                    <Minus size={16} /> 快捷消耗
-                                </button>
-
-
-                                <button className="btn-secondary" onClick={() => toggleExpand(item.id)}>
-                                    详情
-                                </button>
-
-                                <div className="secondary-actions">
-                                    <button className="icon-btn edit-btn" onClick={() => handleOpenEdit(item)}>
-                                        <Edit size={16} />
+                            {!isBatchMode && (
+                                <div className="item-actions">
+                                    <button
+                                        className="btn-consume"
+                                        onClick={() => consumeItem(item.id, 1)}
+                                        disabled={item.totalQuantity === 0}
+                                    >
+                                        <Minus size={16} /> 快捷消耗
                                     </button>
-                                    <button className="icon-btn delete-btn" onClick={() => deleteItem(item.id)}>
-                                        <Trash2 size={16} />
+
+                                    <button className="btn-secondary" onClick={() => toggleExpand(item.id)}>
+                                        详情
                                     </button>
+
+                                    <div className="secondary-actions">
+                                        <button className="icon-btn edit-btn" onClick={() => handleOpenEdit(item)}>
+                                            <Edit size={16} />
+                                        </button>
+                                        <button className="icon-btn delete-btn" onClick={() => deleteItem(item.id)}>
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                            {expandedItems.has(item.id) && (
+                            )}
+                            {expandedItems.has(item.id) && !isBatchMode && (
                                 <div className="batches-panel">
                                     <h4>批次详情</h4>
                                     {(!item.batches || item.batches.length === 0) ? (
