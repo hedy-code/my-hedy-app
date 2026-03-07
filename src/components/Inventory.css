@@ -295,20 +295,31 @@
     padding-right: 4px;
 }
 
+.modal-batches-scroll-area {
+    max-height: 130px;
+    /* ~3 input rows + gaps */
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
 /* Custom WebKit Scrollbar for explicit visibility */
-.batches-scroll-area::-webkit-scrollbar {
+.batches-scroll-area::-webkit-scrollbar,
+.modal-batches-scroll-area::-webkit-scrollbar {
     width: 6px;
 }
 
-.batches-scroll-area::-webkit-scrollbar-track {
+.batches-scroll-area::-webkit-scrollbar-track,
+.modal-batches-scroll-area::-webkit-scrollbar-track {
     background: transparent;
 }
 
-.batches-scroll-area::-webkit-scrollbar-thumb {
+.batches-scroll-area::-webkit-scrollbar-thumb,
+.modal-batches-scroll-area::-webkit-scrollbar-thumb {
     background-color: var(--border-color, #d1d5db);
     border-radius: 10px;
 }
 
-.batches-scroll-area::-webkit-scrollbar-thumb:hover {
+.batches-scroll-area::-webkit-scrollbar-thumb:hover,
+.modal-batches-scroll-area::-webkit-scrollbar-thumb:hover {
     background-color: var(--text-secondary, #9ca3af);
 }

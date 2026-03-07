@@ -480,46 +480,48 @@ export function Inventory() {
 
                             <div className="form-group batches-group">
                                 <label>录入批次 (数量 & 保质期)</label>
-                                {formData.batches.map((batch, index) => (
-                                    <div key={batch.id} className="batch-input-row flex-between" style={{ marginBottom: '8px', gap: '8px' }}>
-                                        <input
-                                            type="number"
-                                            min="0.1"
-                                            step="0.1"
-                                            required
-                                            value={batch.quantity || ''}
-                                            onChange={e => {
-                                                const newBatches = [...formData.batches];
-                                                newBatches[index].quantity = parseFloat(e.target.value) || 0;
-                                                setFormData({ ...formData, batches: newBatches });
-                                            }}
-                                            style={{ width: '80px' }}
-                                            placeholder="数量"
-                                        />
-                                        <input
-                                            type="date"
-                                            value={batch.expiryDate}
-                                            onChange={e => {
-                                                const newBatches = [...formData.batches];
-                                                newBatches[index].expiryDate = e.target.value;
-                                                setFormData({ ...formData, batches: newBatches });
-                                            }}
-                                            style={{ flex: 1 }}
-                                        />
-                                        {formData.batches.length > 1 && (
-                                            <button
-                                                type="button"
-                                                className="icon-btn delete-btn"
-                                                onClick={() => {
-                                                    const newBatches = formData.batches.filter((_, i) => i !== index);
+                                <div className="modal-batches-scroll-area">
+                                    {formData.batches.map((batch, index) => (
+                                        <div key={batch.id} className="batch-input-row flex-between" style={{ marginBottom: '8px', gap: '8px' }}>
+                                            <input
+                                                type="number"
+                                                min="0.1"
+                                                step="0.1"
+                                                required
+                                                value={batch.quantity || ''}
+                                                onChange={e => {
+                                                    const newBatches = [...formData.batches];
+                                                    newBatches[index].quantity = parseFloat(e.target.value) || 0;
                                                     setFormData({ ...formData, batches: newBatches });
                                                 }}
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        )}
-                                    </div>
-                                ))}
+                                                style={{ width: '80px' }}
+                                                placeholder="数量"
+                                            />
+                                            <input
+                                                type="date"
+                                                value={batch.expiryDate}
+                                                onChange={e => {
+                                                    const newBatches = [...formData.batches];
+                                                    newBatches[index].expiryDate = e.target.value;
+                                                    setFormData({ ...formData, batches: newBatches });
+                                                }}
+                                                style={{ flex: 1 }}
+                                            />
+                                            {formData.batches.length > 1 && (
+                                                <button
+                                                    type="button"
+                                                    className="icon-btn delete-btn"
+                                                    onClick={() => {
+                                                        const newBatches = formData.batches.filter((_, i) => i !== index);
+                                                        setFormData({ ...formData, batches: newBatches });
+                                                    }}
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
                                 <button
                                     type="button"
                                     className="btn-secondary"
