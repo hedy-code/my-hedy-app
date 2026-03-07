@@ -121,7 +121,7 @@ export function Inventory() {
             const specToSave = formData.specification || '默认规格';
             const exactMatch = items.find(i => i.name === formData.name && (i.specification || '默认规格') === specToSave);
             if (exactMatch) {
-                alert(`保存失败！此【名称】${formData.name} + 【规格】${specToSave} 已经存在！\n请通过卡片上的[进货]功能来增加数量。`);
+                alert(`保存失败！此【名称】${formData.name} + 【规格】${specToSave} 已经存在！\n请在列表中找到该物品，点击[编辑]来修改数量。`);
                 return;
             }
             const nameMatch = items.find(i => i.name === formData.name);
