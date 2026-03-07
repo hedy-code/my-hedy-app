@@ -192,7 +192,7 @@ export function Inventory() {
                 <div style={{ display: 'flex', gap: '12px' }}>
                     <button
                         className={isBatchMode ? "btn-primary" : "btn-secondary"}
-                        style={{ padding: '0.875rem 1.5rem' }}
+                        style={{ padding: '0.6rem 1.25rem' }}
                         onClick={() => {
                             setIsBatchMode(!isBatchMode);
                             setSelectedItems(new Set());
@@ -200,7 +200,7 @@ export function Inventory() {
                         {isBatchMode ? '取消选择' : '批量操作'}
                     </button>
                     {!isBatchMode && (
-                        <button className="btn-primary" onClick={handleOpenAdd} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.875rem 1.5rem' }}>
+                        <button className="btn-primary" onClick={handleOpenAdd} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.25rem' }}>
                             <Plus size={20} /> 新增物品
                         </button>
                     )}
@@ -208,7 +208,7 @@ export function Inventory() {
                         <>
                             <button
                                 className="btn-secondary"
-                                style={{ padding: '0.875rem 1.5rem' }}
+                                style={{ padding: '0.6rem 1.25rem' }}
                                 onClick={() => {
                                     if (selectedItems.size === filteredItems.length && filteredItems.length > 0) {
                                         setSelectedItems(new Set()); // Deselect all
@@ -222,7 +222,7 @@ export function Inventory() {
                             </button>
                             <button
                                 className="btn-primary"
-                                style={{ backgroundColor: 'var(--danger-color)', opacity: selectedItems.size === 0 ? 0.5 : 1, padding: '0.875rem 1.5rem' }}
+                                style={{ backgroundColor: 'var(--danger-color)', opacity: selectedItems.size === 0 ? 0.5 : 1, padding: '0.6rem 1.25rem' }}
                                 onClick={() => {
                                     if (selectedItems.size === 0) return;
                                     if (window.confirm(`确定要彻底删除选中的 ${selectedItems.size} 个物品吗？操作不可恢复。`)) {
