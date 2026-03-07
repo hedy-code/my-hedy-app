@@ -9,7 +9,7 @@ import './Inventory.css';
 const MAIN_CATEGORIES: string[] = Object.keys(CATEGORY_HIERARCHY);
 
 export function Inventory() {
-    const { items, addItem, updateItem, deleteItem, consumeItem, stockUpItem } = useInventory();
+    const { items, addItem, updateItem, deleteItem, consumeItem } = useInventory();
 
     const [search, setSearch] = useState('');
     const [filterCategory, setFilterCategory] = useState<string>('All');
@@ -25,14 +25,6 @@ export function Inventory() {
         else next.add(id);
         setExpandedItems(next);
     };
-
-    // Stock up state
-    const [isStockUpModalOpen, setIsStockUpModalOpen] = useState(false);
-    const [stockUpItemData, setStockUpItemData] = useState<InventoryItem | null>(null);
-    const [stockUpFormData, setStockUpFormData] = useState({
-        quantity: 1,
-        expiryDate: ''
-    });
 
     // Form state
     const [formData, setFormData] = useState({
@@ -274,17 +266,6 @@ export function Inventory() {
                                     <Minus size={16} /> 快捷消耗
                                 </button>
 
-                                <button
-                                    className="btn-primary"
-                                    style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
-                                    onClick={() => {
-                                        setStockUpItemData(item);
-                                        setStockUpFormData({ quantity: 1, expiryDate: '' });
-                                        setIsStockUpModalOpen(true);
-                                    }}
-                                >
-                                    <Plus size={16} /> 进货
-                                </button>
 
                                 <button className="btn-secondary" onClick={() => toggleExpand(item.id)}>
                                     详情
@@ -477,38 +458,7 @@ export function Inventory() {
                         </form>
                     </div>
                 </div >
-            )
-            }
-
-            {
-                isStockUpModalOpen && stockUpItemData && (
-                    <div className="modal-overlay" onClick={() => setIsStockUpModalOpen(false)}>
-                        <div className="glass modal-content" onClick={e => e.stopPropagation()}>
-                            <h2 className="modal-title">进货: {stockUpItemData.name}</h2>
-                            <form onSubmit={(e) => {
-                                e.preventDefault();
-                                stockUpItem(stockUpItemData.id, stockUpFormData.quantity, stockUpFormData.expiryDate || undefined);
-                                setIsStockUpModalOpen(false);
-                            }} className="item-form">
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>新增数量 ({stockUpItemData.unit})</label>
-                                        <input required type="number" min="0.1" step="0.1" value={stockUpFormData.quantity || ''} onChange={e => setStockUpFormData({ ...stockUpFormData, quantity: parseFloat(e.target.value) || 0 })} />
-                                    </div>
-                                    <div className="form-group">
-                                        <label>此批次保质期 (可选)</label>
-                                        <input type="date" value={stockUpFormData.expiryDate} onChange={e => setStockUpFormData({ ...stockUpFormData, expiryDate: e.target.value })} />
-                                    </div>
-                                </div>
-                                <div className="modal-actions">
-                                    <button type="button" className="btn-cancel" onClick={() => setIsStockUpModalOpen(false)}>取消</button>
-                                    <button type="submit" className="btn-primary">确认进货</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                )
-            }
-        </div >
+            )}
+        </div>
     );
 }

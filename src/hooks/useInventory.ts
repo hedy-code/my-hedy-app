@@ -218,24 +218,6 @@ export function useInventory() {
         await logActivity(id, item.name, 'consume', -actualAmount);
     };
 
-    const stockUpItem = async (id: string, amount: number, expiryDate?: string) => {
-        const item = items.find((i) => i.id === id);
-        if (!item) return;
-
-        const newBatch = {
-            id: generateId(),
-            quantity: amount,
-            ...(expiryDate ? { expiryDate } : {}),
-            addedAt: new Date().toISOString()
-        };
-
-        await updateItem(id, {
-            totalQuantity: item.totalQuantity + amount,
-            batches: [...item.batches, newBatch]
-        });
-        await logActivity(id, item.name, 'stock_up', amount);
-    };
-
     const updateBatchQuantity = async (id: string, batchId: string, newQuantity: number) => {
         const item = items.find((i) => i.id === id);
         if (!item || !item.batches) return;
@@ -331,7 +313,6 @@ export function useInventory() {
         updateItem,
         deleteItem,
         consumeItem,
-        stockUpItem,
         updateBatchQuantity,
         toggleShoppingItem,
         unboughtShoppingCount: shoppingList.filter((s) => !s.isBought).length,
