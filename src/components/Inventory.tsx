@@ -46,7 +46,7 @@ export function Inventory() {
         const itemMainCategory = item.category.includes('-') ? item.category.split('-')[0] : item.category;
         const matchesCategory = filterCategory === 'All' || itemMainCategory === filterCategory;
         return matchesSearch && matchesCategory;
-    });
+    }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     const handleOpenAdd = () => {
         setEditingItem(null);
