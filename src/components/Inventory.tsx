@@ -410,7 +410,7 @@ export function Inventory() {
             </div>
 
             {isModalOpen && (
-                <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
+                <div className="modal-overlay">
                     <div className="glass modal-content" onClick={e => e.stopPropagation()}>
                         <h2 className="modal-title">{editingItem ? '编辑物品' : '新增物品'}</h2>
                         <form onSubmit={handleSave} className="item-form">

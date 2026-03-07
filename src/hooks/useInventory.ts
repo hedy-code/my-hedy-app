@@ -10,6 +10,8 @@ import {
     query,
     orderBy,
     limit,
+    getDocs,
+    where,
     writeBatch
 } from 'firebase/firestore';
 import type { InventoryItem, ActivityLog, ShoppingItem, ActivityAction } from '../types';
@@ -100,9 +102,7 @@ export function useInventory() {
             await setDoc(docRef, newItem);
             await logActivity(newItem.id, newItem.name, 'add', newItem.totalQuantity);
 
-            if (newItem.totalQuantity <= (newItem.lowStockThreshold || 0)) {
-                await addToShoppingListIfMissing(newItem, newItem.totalQuantity);
-            }
+            await evaluateShoppingList(newItem, newItem.totalQuantity, newItem.lowStockThreshold || 0);
         } catch (error) {
             console.error("Error adding item:", error);
         }
@@ -117,11 +117,8 @@ export function useInventory() {
             // Re-evaluate shopping list status after update
             const item = items.find((i) => i.id === id);
             if (item) {
-                const newTotalQuantity = updates.totalQuantity !== undefined ? updates.totalQuantity : item.totalQuantity;
-                const newThreshold = updates.lowStockThreshold !== undefined ? updates.lowStockThreshold : (item.lowStockThreshold || 0);
-                if (newTotalQuantity <= newThreshold) {
-                    await addToShoppingListIfMissing(item, newTotalQuantity);
-                }
+                const updatedItem = { ...item, ...updates } as InventoryItem;
+                await evaluateShoppingList(updatedItem, updatedItem.totalQuantity, updatedItem.lowStockThreshold || 0);
             }
         } catch (error) {
             console.error("Error updating item:", error);
@@ -193,29 +190,39 @@ export function useInventory() {
         }
     };
 
-    const addToShoppingListIfMissing = async (item: InventoryItem, currentQuantity: number) => {
+    const evaluateShoppingList = async (item: InventoryItem, newTotalQuantity: number, newThreshold: number) => {
         if (!user) return;
-        const exists = shoppingList.find((s) => s.itemId === item.id && !s.isBought);
-        if (exists) return; // Already on the list
-
-        if (currentQuantity > (item.lowStockThreshold || 0)) return; // Only add if below or equal to threshold
-
-        const newItem: ShoppingItem = {
-            id: generateId(),
-            itemId: item.id,
-            customName: item.name,
-            specification: item.specification || '默认规格',
-            category: item.category,
-            quantityNeeded: Math.max(1, (item.lowStockThreshold || 0) * 2),
-            isBought: false,
-            createdAt: new Date().toISOString(),
-        };
 
         try {
-            const docRef = doc(db, 'users', user.uid, 'shopping', newItem.id);
-            await setDoc(docRef, newItem);
+            const shoppingRef = collection(db, 'users', user.uid, 'shopping');
+            const q = query(shoppingRef, where('itemId', '==', item.id), where('isBought', '==', false));
+            const snapshot = await getDocs(q);
+
+            if (newTotalQuantity <= newThreshold) {
+                // Item is at or below threshold: check if it needs to be added to shopping list
+                if (snapshot.empty) {
+                    const newItem: ShoppingItem = {
+                        id: generateId(),
+                        itemId: item.id,
+                        customName: item.name,
+                        specification: item.specification || '默认规格',
+                        category: item.category,
+                        quantityNeeded: Math.max(1, newThreshold * 2), // Default logic for how much to buy
+                        isBought: false,
+                        createdAt: new Date().toISOString(),
+                    };
+                    await setDoc(doc(shoppingRef, newItem.id), newItem);
+                }
+            } else {
+                // Item is above threshold: remove any unbought matching items from shopping list
+                if (!snapshot.empty) {
+                    const batch = writeBatch(db);
+                    snapshot.forEach(docSnap => batch.delete(docSnap.ref));
+                    await batch.commit();
+                }
+            }
         } catch (error) {
-            console.error("Error adding to shopping list", error);
+            console.error("Error evaluating shopping list", error);
         }
     };
 
