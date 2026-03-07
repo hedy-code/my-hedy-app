@@ -99,6 +99,10 @@ export function useInventory() {
             const docRef = doc(db, 'users', user.uid, 'items', newItem.id);
             await setDoc(docRef, newItem);
             await logActivity(newItem.id, newItem.name, 'add', newItem.totalQuantity);
+
+            if (newItem.totalQuantity <= (newItem.lowStockThreshold || 0)) {
+                await addToShoppingListIfMissing(newItem, newItem.totalQuantity);
+            }
         } catch (error) {
             console.error("Error adding item:", error);
         }
