@@ -11,8 +11,10 @@ const MAIN_CATEGORIES: string[] = Object.keys(CATEGORY_HIERARCHY);
 export function Inventory() {
     const { items, addItem, updateItem, deleteItem, deleteItems, consumeItem } = useInventory();
 
-    const [search, setSearch] = useState('');
-    const [filterCategory, setFilterCategory] = useState<string>('All');
+    const [searchName, setSearchName] = useState('');
+    const [searchSpec, setSearchSpec] = useState('');
+    const [filterMainCategory, setFilterMainCategory] = useState<string>('All');
+    const [filterSubCategory, setFilterSubCategory] = useState<string>('All');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
     const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
@@ -40,14 +42,19 @@ export function Inventory() {
     });
 
     const filteredItems = items.filter(item => {
-        const specText = item.specification || '默认规格';
-        const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase()) ||
-            specText.toLowerCase().includes(search.toLowerCase()) ||
-            item.category.toLowerCase().includes(search.toLowerCase());
+        const itemSpec = item.specification || '默认规格';
+
+        const matchesName = searchName === '' || item.name.toLowerCase().includes(searchName.toLowerCase());
+        const matchesSpec = searchSpec === '' || itemSpec.toLowerCase().includes(searchSpec.toLowerCase());
+
         // Split legacy categories for backwards compatibility search
         const itemMainCategory = item.category.includes('-') ? item.category.split('-')[0] : item.category;
-        const matchesCategory = filterCategory === 'All' || itemMainCategory === filterCategory;
-        return matchesSearch && matchesCategory;
+        const itemSubCategory = item.category.includes('-') ? item.category.split('-')[1] || '' : '';
+
+        const matchesMainCategory = filterMainCategory === 'All' || itemMainCategory === filterMainCategory;
+        const matchesSubCategory = filterSubCategory === 'All' || itemSubCategory === filterSubCategory;
+
+        return matchesName && matchesSpec && matchesMainCategory && matchesSubCategory;
     }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     const handleOpenAdd = () => {
@@ -221,50 +228,52 @@ export function Inventory() {
                 </div>
             </header>
 
-            <div className="filters-bar glass">
+            <div className="filters-bar glass" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', padding: '1rem 1.5rem', marginBottom: '2rem' }}>
                 <div className="search-box">
-                    <Search size={20} className="icon" />
+                    <Search size={18} className="icon" />
                     <input
                         type="text"
-                        placeholder="搜索物品..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="按名称搜索..."
+                        value={searchName}
+                        onChange={(e) => setSearchName(e.target.value)}
+                    />
+                </div>
+                <div className="search-box">
+                    <Search size={18} className="icon" />
+                    <input
+                        type="text"
+                        placeholder="按规格搜索..."
+                        value={searchSpec}
+                        onChange={(e) => setSearchSpec(e.target.value)}
                     />
                 </div>
                 <div className="filter-box">
-                    <Filter size={20} className="icon" />
-                    <div className="categories-list">
-                        <button
-                            className={`category-btn ${filterCategory === 'All' ? 'active' : ''}`}
-                            onClick={() => setFilterCategory('All')}
-                        >
-                            全部 ({items.length})
-                        </button>
-                        {MAIN_CATEGORIES.map(cat => {
-                            const count = items.filter(i => {
-                                const mainStr = i.category.includes('-') ? i.category.split('-')[0] : i.category;
-                                return mainStr === cat;
-                            }).length;
-                            if (count === 0 && filterCategory !== cat) return null;
-
-                            let totalQty = 0;
-                            if (filterCategory === cat || filterCategory === 'All') {
-                                totalQty = count;
-                            }
-                            return (
-                                <button
-                                    key={cat}
-                                    className={`category-btn ${filterCategory === cat ? 'active' : ''}`}
-                                    onClick={() => setFilterCategory(cat)}
-                                >
-                                    {cat}
-                                    <span className={`category-badge ${totalQty === 0 ? 'empty' : ''}`}>
-                                        {totalQty}
-                                    </span>
-                                </button>
-                            );
-                        })}
-                    </div>
+                    <Filter size={18} className="icon" />
+                    <select
+                        value={filterMainCategory}
+                        onChange={(e) => {
+                            setFilterMainCategory(e.target.value);
+                            setFilterSubCategory('All'); // Reset sub category when main changes
+                        }}
+                    >
+                        <option value="All">所有一级分类</option>
+                        {MAIN_CATEGORIES.map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                    </select>
+                </div>
+                <div className="filter-box">
+                    <Filter size={18} className="icon" />
+                    <select
+                        value={filterSubCategory}
+                        onChange={(e) => setFilterSubCategory(e.target.value)}
+                        disabled={filterMainCategory === 'All'}
+                    >
+                        <option value="All">所有二级分类</option>
+                        {filterMainCategory !== 'All' && Object.keys(CATEGORY_HIERARCHY[filterMainCategory] || {}).map(subCat => (
+                            <option key={subCat} value={subCat}>{subCat}</option>
+                        ))}
+                    </select>
                 </div>
             </div>
 
