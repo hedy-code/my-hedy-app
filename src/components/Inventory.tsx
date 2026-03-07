@@ -240,6 +240,30 @@ export function Inventory() {
                 </div>
             </header>
 
+            <div className="category-tabs">
+                <button
+                    className={`tab-item ${filterMainCategory === 'All' ? 'active' : ''}`}
+                    onClick={() => {
+                        setFilterMainCategory('All');
+                        setFilterSubCategory('All');
+                    }}
+                >
+                    全部
+                </button>
+                {MAIN_CATEGORIES.map(cat => (
+                    <button
+                        key={cat}
+                        className={`tab-item ${filterMainCategory === cat ? 'active' : ''}`}
+                        onClick={() => {
+                            setFilterMainCategory(cat);
+                            setFilterSubCategory('All');
+                        }}
+                    >
+                        {cat}
+                    </button>
+                ))}
+            </div>
+
             <div className="filters-bar glass" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', padding: '1rem 1.5rem', marginBottom: '2rem' }}>
                 <div className="search-box">
                     <Search size={18} className="icon" />
@@ -259,21 +283,7 @@ export function Inventory() {
                         onChange={(e) => setSearchSpec(e.target.value)}
                     />
                 </div>
-                <div className="filter-box">
-                    <Filter size={18} className="icon" />
-                    <select
-                        value={filterMainCategory}
-                        onChange={(e) => {
-                            setFilterMainCategory(e.target.value);
-                            setFilterSubCategory('All'); // Reset sub category when main changes
-                        }}
-                    >
-                        <option value="All">所有一级分类</option>
-                        {MAIN_CATEGORIES.map(cat => (
-                            <option key={cat} value={cat}>{cat}</option>
-                        ))}
-                    </select>
-                </div>
+                {/* Secondary category filter remains as a dropdown, but only shows if a main category is selected */}
                 <div className="filter-box">
                     <Filter size={18} className="icon" />
                     <select
