@@ -352,7 +352,7 @@ export function Inventory() {
                                         <Minus size={16} /> 快捷消耗
                                     </button>
 
-                                    <button className="btn-secondary" onClick={() => toggleExpand(item.id)}>
+                                    <button className="btn-consume" onClick={() => toggleExpand(item.id)}>
                                         库存详情
                                     </button>
 
