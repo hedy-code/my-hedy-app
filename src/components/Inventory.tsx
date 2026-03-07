@@ -197,7 +197,7 @@ export function Inventory() {
                         {isBatchMode ? '取消选择' : '批量操作'}
                     </button>
                     {!isBatchMode && (
-                        <button className="btn-primary" onClick={handleOpenAdd}>
+                        <button className="btn-primary" onClick={handleOpenAdd} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <Plus size={20} /> 新增物品
                         </button>
                     )}
