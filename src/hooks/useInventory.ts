@@ -161,11 +161,19 @@ export function useInventory() {
         try {
             const batch = writeBatch(db);
 
-            // Note: logActivity happens outside the batch, which is fine for small numbers
             for (const id of ids) {
                 const itemToDelete = items.find((i) => i.id === id);
                 if (itemToDelete) {
-                    await logActivity(itemToDelete.id, itemToDelete.name, 'delete', 0);
+                    const newLog: ActivityLog = {
+                        id: generateId(),
+                        itemId: itemToDelete.id,
+                        itemName: itemToDelete.name,
+                        action: 'delete',
+                        quantityChange: 0,
+                        timestamp: new Date().toISOString(),
+                    };
+                    const logDocRef = doc(db, 'users', user.uid, 'activities', newLog.id);
+                    batch.set(logDocRef, newLog);
                 }
 
                 const itemRef = doc(db, 'users', user.uid, 'items', id);
