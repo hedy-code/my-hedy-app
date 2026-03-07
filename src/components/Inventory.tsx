@@ -187,21 +187,36 @@ export function Inventory() {
                         </button>
                     )}
                     {isBatchMode && (
-                        <button
-                            className="btn-primary"
-                            style={{ backgroundColor: 'var(--danger-color)', opacity: selectedItems.size === 0 ? 0.5 : 1 }}
-                            onClick={() => {
-                                if (selectedItems.size === 0) return;
-                                if (window.confirm(`确定要彻底删除选中的 ${selectedItems.size} 个物品吗？操作不可恢复。`)) {
-                                    deleteItems(Array.from(selectedItems));
-                                    setIsBatchMode(false);
-                                    setSelectedItems(new Set());
-                                }
-                            }}
-                            disabled={selectedItems.size === 0}
-                        >
-                            <Trash2 size={20} /> 删除所选 ({selectedItems.size})
-                        </button>
+                        <>
+                            <button
+                                className="btn-secondary"
+                                onClick={() => {
+                                    if (selectedItems.size === filteredItems.length && filteredItems.length > 0) {
+                                        setSelectedItems(new Set()); // Deselect all
+                                    } else {
+                                        const allIds = filteredItems.map(i => i.id);
+                                        setSelectedItems(new Set(allIds)); // Select all filtered
+                                    }
+                                }}
+                            >
+                                {selectedItems.size === filteredItems.length && filteredItems.length > 0 ? '取消全选' : '全选'}
+                            </button>
+                            <button
+                                className="btn-primary"
+                                style={{ backgroundColor: 'var(--danger-color)', opacity: selectedItems.size === 0 ? 0.5 : 1 }}
+                                onClick={() => {
+                                    if (selectedItems.size === 0) return;
+                                    if (window.confirm(`确定要彻底删除选中的 ${selectedItems.size} 个物品吗？操作不可恢复。`)) {
+                                        deleteItems(Array.from(selectedItems));
+                                        setIsBatchMode(false);
+                                        setSelectedItems(new Set());
+                                    }
+                                }}
+                                disabled={selectedItems.size === 0}
+                            >
+                                <Trash2 size={20} /> 删除所选 ({selectedItems.size})
+                            </button>
+                        </>
                     )}
                 </div>
             </header>
