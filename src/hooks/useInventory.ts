@@ -304,15 +304,27 @@ export function useInventory() {
 
                     addedAmount = fallbackAdded;
                     const itemRef = doc(db, 'users', user.uid, 'items', invItem.id);
-                    const newBatch = {
-                        id: generateId(),
-                        quantity: addedAmount,
-                        ...(expiryDate ? { expiryDate } : {}),
-                        addedAt: new Date().toISOString()
-                    };
+                    const targetExpiry = expiryDate || '';
+                    let updatedBatches = [...(invItem.batches || [])];
+                    const existingBatchIndex = updatedBatches.findIndex(b => (b.expiryDate || '') === targetExpiry);
+
+                    if (existingBatchIndex >= 0) {
+                        updatedBatches[existingBatchIndex] = {
+                            ...updatedBatches[existingBatchIndex],
+                            quantity: Number(updatedBatches[existingBatchIndex].quantity) + addedAmount
+                        };
+                    } else {
+                        updatedBatches.push({
+                            id: generateId(),
+                            quantity: addedAmount,
+                            ...(targetExpiry ? { expiryDate: targetExpiry } : {}),
+                            addedAt: new Date().toISOString()
+                        });
+                    }
+
                     batch.update(itemRef, {
-                        totalQuantity: invItem.totalQuantity + addedAmount,
-                        batches: [...(invItem.batches || []), newBatch],
+                        totalQuantity: Number(invItem.totalQuantity || 0) + addedAmount,
+                        batches: updatedBatches,
                         updatedAt: new Date().toISOString()
                     });
 
