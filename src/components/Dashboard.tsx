@@ -1,10 +1,10 @@
 import { useInventory } from '../hooks/useInventory';
-import { PackagePlus, ArrowDownToLine, AlertTriangle, Clock, ShoppingCart } from 'lucide-react';
+import { PackagePlus, AlertTriangle, Clock, ShoppingCart } from 'lucide-react';
 import { isBefore, addDays, parseISO } from 'date-fns';
 import './Dashboard.css';
 
 export function Dashboard() {
-    const { items, logs, unboughtShoppingCount, lowStockItems } = useInventory();
+    const { items, logs, unboughtShoppingCount } = useInventory();
 
     const totalItems = items.length;
     const expiringSoon = items.filter(i => {
@@ -35,15 +35,7 @@ export function Dashboard() {
                     </div>
                 </div>
 
-                <div className="glass stat-card">
-                    <div className="stat-icon" style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', color: 'var(--warning)' }}>
-                        <ArrowDownToLine size={24} />
-                    </div>
-                    <div className="stat-content">
-                        <h3>低库存</h3>
-                        <p className="stat-value">{lowStockItems.length}</p>
-                    </div>
-                </div>
+
 
                 <div className="glass stat-card">
                     <div className="stat-icon" style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)', color: 'var(--brand-secondary)' }}>

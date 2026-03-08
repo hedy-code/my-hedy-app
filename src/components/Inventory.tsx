@@ -484,10 +484,10 @@ export function Inventory() {
                                         required
                                         type="number"
                                         min="0"
-                                        step="0.1"
+                                        step="1"
                                         value={formData.lowStockThreshold === undefined ? '' : formData.lowStockThreshold}
                                         disabled={!editingItem && items.some(i => i.name === formData.name)}
-                                        onChange={e => setFormData({ ...formData, lowStockThreshold: e.target.value === '' ? undefined : parseFloat(e.target.value) })}
+                                        onChange={e => setFormData({ ...formData, lowStockThreshold: e.target.value === '' ? undefined : parseInt(e.target.value, 10) })}
                                     />
                                 </div>
                             </div>
@@ -499,13 +499,13 @@ export function Inventory() {
                                         <div key={batch.id} className="batch-input-row flex-between" style={{ marginBottom: '8px', gap: '8px' }}>
                                             <input
                                                 type="number"
-                                                min="0.1"
-                                                step="0.1"
+                                                min="1"
+                                                step="1"
                                                 required
                                                 value={batch.quantity || ''}
                                                 onChange={e => {
                                                     const newBatches = [...formData.batches];
-                                                    newBatches[index].quantity = parseFloat(e.target.value) || 0;
+                                                    newBatches[index].quantity = parseInt(e.target.value, 10) || 0;
                                                     setFormData({ ...formData, batches: newBatches });
                                                 }}
                                                 style={{ width: '80px' }}

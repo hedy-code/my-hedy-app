@@ -119,10 +119,10 @@ export function ShoppingList() {
                                     <input
                                         required
                                         type="number"
-                                        min="0.1"
-                                        step="0.1"
+                                        min="1"
+                                        step="1"
                                         value={checkoutForm.quantity || ''}
-                                        onChange={e => setCheckoutForm({ ...checkoutForm, quantity: parseFloat(e.target.value) || 0 })}
+                                        onChange={e => setCheckoutForm({ ...checkoutForm, quantity: parseInt(e.target.value, 10) || 0 })}
                                     />
                                 </div>
                                 <div className="form-group">
