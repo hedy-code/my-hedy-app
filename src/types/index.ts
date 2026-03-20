@@ -38,6 +38,7 @@ export const CATEGORY_HIERARCHY: Record<string, Record<string, string>> = {
         '护肤品': '瓶/个',
         '化妆品': '瓶/个',
         '食品': '瓶/个',
+        '药品': '瓶/个',
         '其他类流体类耗材': '瓶/个',
     }
 };
