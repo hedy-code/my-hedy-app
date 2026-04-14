@@ -1,19 +1,41 @@
 import { useInventory } from '../hooks/useInventory';
-import { ShoppingCart, CheckCircle, Circle, ArrowRight } from 'lucide-react';
+import { ShoppingCart, CheckCircle, Circle, ArrowRight, Search, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import type { ShoppingItem } from '../types';
+import { CATEGORY_HIERARCHY, type ShoppingItem } from '../types';
 import './ShoppingList.css';
 
 export function ShoppingList() {
-    const { shoppingList, toggleShoppingItem } = useInventory();
+    const { shoppingList, toggleShoppingItem, deleteShoppingItem } = useInventory();
     const navigate = useNavigate();
 
     const [checkingOutItem, setCheckingOutItem] = useState<ShoppingItem | null>(null);
     const [checkoutForm, setCheckoutForm] = useState({ quantity: 1, expiryDate: '' });
 
-    const toBuy = shoppingList.filter(s => !s.isBought);
-    const bought = shoppingList
+    const [filterMainCategory, setFilterMainCategory] = useState<string>('All');
+    const [filterSubCategory, setFilterSubCategory] = useState<string>('All');
+    const [searchName, setSearchName] = useState('');
+    const [searchSpec, setSearchSpec] = useState('');
+
+    const MAIN_CATEGORIES = Object.keys(CATEGORY_HIERARCHY);
+
+    const filteredShoppingList = shoppingList.filter(item => {
+        let match = true;
+        const [mainCat, subCat] = (item.category || '').split('-');
+
+        if (filterMainCategory !== 'All' && mainCat !== filterMainCategory) match = false;
+        if (filterSubCategory !== 'All' && subCat !== filterSubCategory) match = false;
+        
+        if (searchName && !String(item.customName || '').toLowerCase().includes(searchName.toLowerCase())) match = false;
+        
+        const specStr = String(item.specification || '默认规格');
+        if (searchSpec && !specStr.toLowerCase().includes(searchSpec.toLowerCase())) match = false;
+        
+        return match;
+    });
+
+    const toBuy = filteredShoppingList.filter(s => !s.isBought);
+    const bought = filteredShoppingList
         .filter(s => s.isBought)
         .sort((a, b) => {
             const timeA = new Date(a.purchasedAt || a.createdAt).getTime();
@@ -27,6 +49,13 @@ export function ShoppingList() {
             setCheckoutForm({ quantity: item.quantityNeeded, expiryDate: '' });
         } else {
             toggleShoppingItem(item.id);
+        }
+    };
+
+    const handleDelete = (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        if (window.confirm('确定要从购物清单中删除此项吗？')) {
+            deleteShoppingItem(id);
         }
     };
 
@@ -44,6 +73,71 @@ export function ShoppingList() {
                 <h1 className="title">购物清单</h1>
                 <p className="subtitle">低于安全库存线的物品将自动添加至此</p>
             </header>
+
+            <div className="category-tabs">
+                <button
+                    className={`tab-item ${filterMainCategory === 'All' ? 'active' : ''}`}
+                    onClick={() => {
+                        setFilterMainCategory('All');
+                        setFilterSubCategory('All');
+                    }}
+                >
+                    全部
+                </button>
+                {MAIN_CATEGORIES.map(cat => (
+                    <button
+                        key={cat}
+                        className={`tab-item ${filterMainCategory === cat ? 'active' : ''}`}
+                        onClick={() => {
+                            setFilterMainCategory(cat);
+                            setFilterSubCategory('All');
+                        }}
+                    >
+                        {cat}
+                    </button>
+                ))}
+            </div>
+
+            {filterMainCategory !== 'All' && (
+                <div className="category-tabs" style={{ marginTop: '0.5rem' }}>
+                    <button
+                        className={`tab-item ${filterSubCategory === 'All' ? 'active' : ''}`}
+                        onClick={() => setFilterSubCategory('All')}
+                    >
+                        全部子分类
+                    </button>
+                    {Object.keys(CATEGORY_HIERARCHY[filterMainCategory] || {}).map(subCat => (
+                        <button
+                            key={subCat}
+                            className={`tab-item ${filterSubCategory === subCat ? 'active' : ''}`}
+                            onClick={() => setFilterSubCategory(subCat)}
+                        >
+                            {subCat}
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            <div className="filters-bar glass" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', padding: '1rem 1.5rem', marginBottom: '2rem', marginTop: '1rem' }}>
+                <div className="search-box">
+                    <Search size={18} className="icon" />
+                    <input
+                        type="text"
+                        placeholder="按名称搜索..."
+                        value={searchName}
+                        onChange={(e) => setSearchName(e.target.value)}
+                    />
+                </div>
+                <div className="search-box">
+                    <Search size={18} className="icon" />
+                    <input
+                        type="text"
+                        placeholder="按规格搜索..."
+                        value={searchSpec}
+                        onChange={(e) => setSearchSpec(e.target.value)}
+                    />
+                </div>
+            </div>
 
             <div className="shopping-container glass">
                 <div className="shopping-section">
@@ -72,6 +166,14 @@ export function ShoppingList() {
                                         </span>
                                         <span className="item-meta">类别: {item.category.replace('-', ' → ')}</span>
                                     </div>
+                                    <button 
+                                        className="icon-btn delete-btn" 
+                                        style={{ marginLeft: 'auto', color: 'var(--danger-color)', padding: '8px' }}
+                                        onClick={(e) => handleDelete(e, item.id)}
+                                        title="从清单删除"
+                                    >
+                                        <Trash2 size={20} />
+                                    </button>
                                 </div>
                             ))}
                         </div>
@@ -101,6 +203,14 @@ export function ShoppingList() {
                                             {item.purchasedAt && <span>日期: {new Date(item.purchasedAt).toLocaleDateString()}</span>}
                                         </div>
                                     </div>
+                                    <button 
+                                        className="icon-btn delete-btn" 
+                                        style={{ marginLeft: 'auto', color: 'var(--danger-color)', padding: '8px', opacity: 0.6 }}
+                                        onClick={(e) => handleDelete(e, item.id)}
+                                        title="从记录删除"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
                                 </div>
                             ))}
                         </div>
