@@ -2,6 +2,7 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
+    gap: 1rem;
 }
 
 @media (max-width: 640px) {
@@ -12,102 +13,40 @@
     }
 }
 
-.filters-bar {
-    display: flex;
-    gap: 1.5rem;
-    padding: 1rem 1.5rem;
-    margin-bottom: 2rem;
-    align-items: center;
-}
 
-.category-tabs {
-    display: flex;
-    gap: 0.5rem;
-    overflow-x: auto;
-    padding-bottom: 0.5rem;
-    margin-bottom: 1.5rem;
-    /* Custom scrollbar for tabs */
-    scrollbar-width: none;
-    /* Firefox */
-}
-
-.category-tabs::-webkit-scrollbar {
-    display: none;
-    /* Chrome, Safari and Opera */
-}
-
-.tab-item {
-    background: var(--surface-1);
-    border: 1px solid var(--border-color);
-    color: var(--text-secondary);
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    white-space: nowrap;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.tab-item:hover {
-    background: var(--surface-2);
-    color: var(--text-primary);
-}
-
-.tab-item.active {
-    background: var(--brand-primary);
-    color: white;
-    border-color: var(--brand-primary);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
-
-.search-box,
-.filter-box {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    flex: 1;
-}
-
-.filter-box {
-    flex: 0 1 300px;
-}
-
-.search-box .icon,
-.filter-box .icon {
-    color: var(--text-secondary);
-}
-
-.search-box input,
-.filter-box select {
-    width: 100%;
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid var(--border-color);
-    border-radius: 0;
-    padding: 0.5rem 0;
-    font-size: 1rem;
-}
-
-.search-box input:focus,
-.filter-box select:focus {
-    border-bottom-color: var(--brand-primary);
-    box-shadow: none;
-}
 
 .items-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+@media (max-width: 480px) {
+    .items-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .item-card {
-    padding: 1.5rem;
+    padding: 1rem;
     display: flex;
     flex-direction: column;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     position: relative;
     overflow: hidden;
+    animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: calc(var(--index, 0) * 0.05s);
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .item-card::before {
@@ -135,15 +74,15 @@
 .item-card-header {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
 }
 
 .category-tag {
     background: var(--surface-2);
     color: var(--text-secondary);
-    padding: 0.25rem 0.75rem;
+    padding: 0.15rem 0.5rem;
     border-radius: 12px;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -162,19 +101,19 @@
 }
 
 .item-name {
-    font-size: 1.25rem;
-    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+    margin-bottom: 0.35rem;
 }
 
 .item-qty-display {
     display: flex;
     align-items: baseline;
     gap: 0.25rem;
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
 }
 
 .qty-value {
-    font-size: 2.5rem;
+    font-size: 2rem;
     font-weight: 700;
     line-height: 1;
     color: var(--text-primary);
@@ -182,7 +121,7 @@
 
 .qty-unit {
     color: var(--text-secondary);
-    font-size: 1rem;
+    font-size: 0.9rem;
 }
 
 .low-stock-msg {
@@ -197,22 +136,24 @@
     justify-content: space-between;
     align-items: center;
     margin-top: auto;
-    padding-top: 1.5rem;
+    padding-top: 1rem;
     border-top: 1px solid var(--border-color);
+    flex-wrap: wrap;
+    gap: 0.5rem;
 }
 
 .btn-consume {
     background: rgba(245, 158, 11, 0.1);
     color: var(--warning);
     border: none;
-    padding: 0.4rem 0.6rem;
+    padding: 0.3rem 0.5rem;
     border-radius: 8px;
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     white-space: nowrap;
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.3rem;
 }
 
 .btn-consume:hover:not(:disabled) {
@@ -229,14 +170,14 @@
     background: rgba(16, 185, 129, 0.1);
     color: var(--success);
     border: none;
-    padding: 0.4rem 0.6rem;
+    padding: 0.3rem 0.5rem;
     border-radius: 8px;
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     white-space: nowrap;
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.3rem;
 }
 
 .btn-details:hover {
@@ -246,14 +187,16 @@
 
 .secondary-actions {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+    margin-left: auto;
 }
 
 .icon-btn {
     background: transparent;
     border: none;
     color: var(--text-secondary);
-    padding: 0.5rem;
+    padding: 0.35rem;
     border-radius: 8px;
 }
 
@@ -295,16 +238,23 @@
 .modal-content {
     width: 100%;
     max-width: 500px;
-    padding: 1.5rem 2rem;
+    padding: 1rem 1.25rem;
     box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
-    max-height: 90vh;
+    max-height: 95vh;
     display: flex;
     flex-direction: column;
 }
 
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+}
+
 .modal-title {
-    font-size: 1.25rem;
-    margin-bottom: 1rem;
+    font-size: 1.15rem;
+    margin-bottom: 0;
 }
 
 .item-form {
@@ -313,23 +263,23 @@
 }
 
 .item-form .form-group {
-    margin-bottom: 0.8rem;
+    margin-bottom: 0.35rem;
 }
 
 .item-form label {
     display: block;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 600;
     color: var(--text-secondary);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.15rem;
 }
 
 .item-form input,
 .item-form select {
     width: 100%;
-    padding: 0.5rem 0.75rem;
-    /* Reduce input padding */
-    font-size: 0.9rem;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.85rem;
+    height: 30px;
 }
 
 .form-row {
@@ -344,9 +294,9 @@
 .modal-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 0.75rem;
-    margin-top: 1rem;
-    padding-top: 1rem;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+    padding-top: 0.5rem;
     border-top: 1px solid var(--border-color);
 }
 
@@ -354,9 +304,10 @@
     background: transparent;
     border: 1px solid var(--border-color);
     color: var(--text-primary);
-    padding: 0.75rem 1.5rem;
+    padding: 0.4rem 1rem;
     border-radius: 8px;
     font-weight: 600;
+    font-size: 0.85rem;
 }
 
 .btn-cancel:hover {
@@ -397,4 +348,122 @@
 .batches-scroll-area::-webkit-scrollbar-thumb:hover,
 .modal-batches-scroll-area::-webkit-scrollbar-thumb:hover {
     background-color: var(--text-secondary, #9ca3af);
+}
+
+/* Compact Table Styles */
+.inventory-table th,
+.inventory-table td {
+    padding: 8px 10px !important;
+    font-size: 0.85rem !important;
+    line-height: 1.3 !important;
+}
+
+.inventory-table th {
+    font-size: 0.8rem !important;
+}
+
+.inventory-table .item-qty-display .qty-value {
+    font-size: 1rem !important;
+}
+
+.inventory-table .item-qty-display .qty-unit {
+    font-size: 0.75rem !important;
+}
+
+.inventory-table .btn-consume,
+.inventory-table .btn-secondary,
+.inventory-table .icon-btn {
+    padding: 4px 6px !important;
+    font-size: 0.75rem !important;
+}
+
+.inventory-table .icon-btn {
+    padding: 4px !important;
+}
+
+/* Remarks Expansion */
+.remark-truncate {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.remark-expanded {
+    display: block;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+/* Mobile Table Responsiveness */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background: var(--surface-1);
+}
+
+.inventory-table {
+    min-width: 800px; /* Force scroll on small screens for table view */
+    margin-bottom: 0;
+}
+
+@media (max-width: 640px) {
+    .item-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .secondary-actions {
+        justify-content: space-between;
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .header-actions {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        width: 100%;
+    }
+
+    .header-actions .btn-primary,
+    .header-actions .btn-secondary {
+        flex: 1;
+        justify-content: center;
+        min-width: 100px;
+        font-size: 0.8rem !important;
+        padding: 0.4rem 0.6rem !important;
+    }
+
+    /* Keep view switcher compact */
+    .view-switcher {
+        flex: 0 0 auto !important;
+    }
+
+    /* iOS Safari auto-zoom prevention: force 16px on ALL form inputs */
+    .item-form input,
+    .item-form select,
+    .item-form textarea {
+        font-size: 16px !important;
+    }
+
+    /* Make modal properly fit on mobile screens */
+    .modal-content {
+        width: 95%;
+        max-height: 85vh;
+        max-height: 85dvh; /* Use dynamic viewport height for iOS */
+        margin: 0 auto;
+    }
+
+    /* Table filter inputs also need 16px */
+    .inventory-table th input {
+        font-size: 16px !important;
+    }
 }

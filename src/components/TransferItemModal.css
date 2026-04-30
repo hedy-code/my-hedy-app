@@ -1,0 +1,182 @@
+.transfer-modal-overlay {
+    z-index: 1100;
+}
+
+.transfer-modal-content {
+    max-width: 500px;
+    width: 90%;
+}
+
+.transfer-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.transfer-modal-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--text-color);
+}
+
+.transfer-mode-selector {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 0.5rem;
+    border-radius: 12px;
+}
+
+.mode-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 1rem;
+}
+
+.mode-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-color);
+}
+
+.mode-btn.active {
+    background: var(--primary-color);
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+}
+
+.transfer-form .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.batches-transfer-section {
+    margin-top: 1.5rem;
+    animation: fadeIn 0.3s ease;
+}
+
+.batches-transfer-section label {
+    display: block;
+    margin-bottom: 0.75rem;
+}
+
+.transfer-batches-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.transfer-batch-row {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.transfer-batch-row.selected {
+    border-color: var(--primary-color);
+    background: rgba(0, 122, 255, 0.05);
+}
+
+.transfer-batch-row .batch-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+}
+
+.transfer-batch-row .batch-info input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary-color);
+}
+
+.transfer-batch-row .batch-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.transfer-batch-row .batch-details .expiry {
+    font-size: 0.9rem;
+    color: var(--text-color);
+}
+
+.transfer-batch-row .batch-details .stock {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.batch-qty-input {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+}
+
+.batch-qty-input label {
+    margin-bottom: 0;
+}
+
+.batch-qty-input input {
+    width: 80px;
+    padding: 0.4rem;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    color: white;
+}
+
+.transfer-modal-footer {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.transfer-modal-footer .hint {
+    font-size: 0.8rem;
+    margin-bottom: 1.5rem;
+}
+
+.transfer-modal-footer .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* iOS Safari auto-zoom prevention */
+@media (max-width: 640px) {
+    .transfer-modal-content input,
+    .transfer-modal-content select,
+    .batch-qty-input input {
+        font-size: 16px !important;
+    }
+
+    .transfer-modal-content {
+        max-height: 85vh;
+        max-height: 85dvh;
+        overflow-y: auto;
+    }
+}

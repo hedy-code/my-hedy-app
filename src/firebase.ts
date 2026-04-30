@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -16,7 +16,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // Initialize Cloud Firestore and get a reference to the service
-export const db = getFirestore(app);
+// 使用 experimentalForceLongPolling 可以解决一些因为网络环境（如防火墙、代理或特定网络限制）导致 WebSocket 无法连接的问题
+export const db = initializeFirestore(app, {
+    experimentalForceLongPolling: true
+});
 
 // Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app);

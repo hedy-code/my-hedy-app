@@ -40,8 +40,32 @@ export const CATEGORY_HIERARCHY: Record<string, Record<string, string>> = {
         '食品': '瓶/个',
         '药品': '瓶/个',
         '其他类流体类耗材': '瓶/个',
+    },
+    '穿戴类': {
+        '内衣/打底': '件/套',
+        '睡衣': '件/套',
+        '外穿上衣': '件/套',
+        '外穿裤子': '件/套',
+        '外穿裙子/套装': '件/套',
+        '外套': '件/套',
+        '袜子': '件/套',
+        '鞋': '件/套',
+        '配饰': '件/套',
+        '运动专用': '件/套',
     }
 };
+
+export const CATEGORY_ORDER: Record<string, number> = {};
+let catIndex = 0;
+for (const mainCat of Object.keys(CATEGORY_HIERARCHY)) {
+    CATEGORY_ORDER[mainCat] = catIndex++;
+    for (const subCat of Object.keys(CATEGORY_HIERARCHY[mainCat] || {})) {
+        CATEGORY_ORDER[`${mainCat}-${subCat}`] = catIndex++;
+        if (CATEGORY_ORDER[subCat] === undefined) {
+             CATEGORY_ORDER[subCat] = catIndex++;
+        }
+    }
+}
 
 export interface InventoryBatch {
     id: string;
@@ -59,7 +83,20 @@ export interface InventoryItem {
     unit: string;              // e.g., 'pcs', 'ml', 'g', 'rolls'
     lowStockThreshold: number; // Alert when totalQuantity <= this
     batches: InventoryBatch[]; // Replaces 'expiryDate'
+    remarks?: string;          // Optional remarks/notes
+    warehouseId: string;       // Added for multi-warehouse support
     createdAt: string;         // ISO timestamp
+    updatedAt: string;         // ISO timestamp
+}
+
+export interface HistoricalItem {
+    id: string;                // usually name_specification
+    name: string;
+    specification: string;     // Defaults to "默认规格" if empty
+    category: ItemCategory;
+    unit: string;
+    lowStockThreshold: number;
+    remarks?: string;
     updatedAt: string;         // ISO timestamp
 }
 
@@ -70,6 +107,7 @@ export interface ActivityLog {
     itemId: string;
     itemName: string;          // Denormalized for easier display if item deleted
     action: ActivityAction;
+    warehouseId: string;       // Added for multi-warehouse support
     quantityChange: number;    // e.g., -1 for consume, +2 for stock_up
     timestamp: string;         // ISO timestamp
 }
@@ -82,7 +120,14 @@ export interface ShoppingItem {
     category: ItemCategory | 'Other';
     quantityNeeded: number;
     isBought: boolean;
+    warehouseId: string;       // Added for multi-warehouse support
     createdAt: string;         // ISO timestamp
     purchasedQuantity?: number;
     purchasedAt?: string;      // ISO timestamp
+}
+
+export interface Warehouse {
+    id: string;
+    name: string;
+    createdAt: string;
 }

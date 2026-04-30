@@ -1,7 +1,8 @@
 import { useInventory } from '../hooks/useInventory';
-import { CalendarOff, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { CalendarOff, AlertTriangle, CheckCircle2, Search } from 'lucide-react';
 import { differenceInDays, parseISO, isBefore, addDays } from 'date-fns';
 import { useState } from 'react';
+import { CATEGORY_HIERARCHY } from '../types';
 import './Expirations.css';
 
 export function Expirations() {
@@ -14,19 +15,41 @@ export function Expirations() {
                 ...b,
                 itemId: item.id,
                 itemName: item.name,
-                itemUnit: item.unit
+                itemUnit: item.unit,
+                category: item.category,
+                specification: item.specification
             }))
     ).sort((a, b) => new Date(a.expiryDate!).getTime() - new Date(b.expiryDate!).getTime());
 
     const [filterStart, setFilterStart] = useState('');
     const [filterEnd, setFilterEnd] = useState('');
 
+    const [filterMainCategory, setFilterMainCategory] = useState<string>('All');
+    const [filterSubCategory, setFilterSubCategory] = useState<string>('All');
+    const [searchName, setSearchName] = useState('');
+    const [searchSpec, setSearchSpec] = useState('');
+
+    const MAIN_CATEGORIES = Object.keys(CATEGORY_HIERARCHY);
+
     const filteredBatches = allExpiryBatches.filter(batch => {
-        if (!batch.expiryDate) return true;
-        const batchDate = batch.expiryDate;
-        if (filterStart && batchDate < filterStart) return false;
-        if (filterEnd && batchDate > filterEnd) return false;
-        return true;
+        let match = true;
+
+        const [mainCat, subCat] = (batch.category || '').split('-');
+        if (filterMainCategory !== 'All' && mainCat !== filterMainCategory) match = false;
+        if (filterSubCategory !== 'All' && subCat !== filterSubCategory) match = false;
+        
+        if (searchName && !String(batch.itemName || '').toLowerCase().includes(searchName.toLowerCase())) match = false;
+        
+        const specStr = String(batch.specification || '默认规格');
+        if (searchSpec && !specStr.toLowerCase().includes(searchSpec.toLowerCase())) match = false;
+
+        if (batch.expiryDate) {
+            const batchDate = batch.expiryDate;
+            if (filterStart && batchDate < filterStart) match = false;
+            if (filterEnd && batchDate > filterEnd) match = false;
+        }
+
+        return match;
     });
 
     const getExpiryStatus = (dateStr: string) => {
@@ -50,22 +73,88 @@ export function Expirations() {
                 <p className="subtitle">在物品过期前及时了解掌握</p>
             </header>
 
-            <div className="glass expirations-container">
-                <div className="filters-bar" style={{ marginBottom: '1.5rem', background: 'transparent', padding: 0, boxShadow: 'none' }}>
-                    <div className="filter-group">
-                        <label>最早保质期</label>
+            <div className="category-tabs">
+                <button
+                    className={`tab-item ${filterMainCategory === 'All' ? 'active' : ''}`}
+                    onClick={() => {
+                        setFilterMainCategory('All');
+                        setFilterSubCategory('All');
+                    }}
+                >
+                    全部
+                </button>
+                {MAIN_CATEGORIES.map(cat => (
+                    <button
+                        key={cat}
+                        className={`tab-item ${filterMainCategory === cat ? 'active' : ''}`}
+                        onClick={() => {
+                            setFilterMainCategory(cat);
+                            setFilterSubCategory('All');
+                        }}
+                    >
+                        {cat}
+                    </button>
+                ))}
+            </div>
+
+            {filterMainCategory !== 'All' && (
+                <div className="category-tabs" style={{ marginTop: '0.5rem' }}>
+                    <button
+                        className={`tab-item ${filterSubCategory === 'All' ? 'active' : ''}`}
+                        onClick={() => setFilterSubCategory('All')}
+                    >
+                        全部子分类
+                    </button>
+                    {Object.keys(CATEGORY_HIERARCHY[filterMainCategory] || {}).map(subCat => (
+                        <button
+                            key={subCat}
+                            className={`tab-item ${filterSubCategory === subCat ? 'active' : ''}`}
+                            onClick={() => setFilterSubCategory(subCat)}
+                        >
+                            {subCat}
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            <div className="glass expirations-container" style={{ marginTop: '1rem' }}>
+                <div className="filters-bar" style={{ marginBottom: '1.5rem', background: 'transparent', padding: 0, boxShadow: 'none', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                    <div className="search-box glass" style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '12px' }}>
+                        <Search size={18} className="icon" style={{ color: 'var(--text-secondary)' }} />
+                        <input
+                            type="text"
+                            placeholder="按名称搜索..."
+                            value={searchName}
+                            onChange={(e) => setSearchName(e.target.value)}
+                            style={{ border: 'none', background: 'transparent', outline: 'none', flex: 1, color: 'var(--text-primary)' }}
+                        />
+                    </div>
+                    <div className="search-box glass" style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '12px' }}>
+                        <Search size={18} className="icon" style={{ color: 'var(--text-secondary)' }} />
+                        <input
+                            type="text"
+                            placeholder="按规格搜索..."
+                            value={searchSpec}
+                            onChange={(e) => setSearchSpec(e.target.value)}
+                            style={{ border: 'none', background: 'transparent', outline: 'none', flex: 1, color: 'var(--text-primary)' }}
+                        />
+                    </div>
+                    <div className="filter-group glass" style={{ padding: '0.5rem 1rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <label style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>最早保质期</label>
                         <input
                             type="date"
                             value={filterStart}
                             onChange={e => setFilterStart(e.target.value)}
+                            style={{ border: 'none', background: 'transparent', flex: 1, outline: 'none', color: 'var(--text-primary)', fontFamily: 'inherit' }}
                         />
                     </div>
-                    <div className="filter-group">
-                        <label>最晚保质期</label>
+                    <div className="filter-group glass" style={{ padding: '0.5rem 1rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <label style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>最晚保质期</label>
                         <input
                             type="date"
                             value={filterEnd}
                             onChange={e => setFilterEnd(e.target.value)}
+                            style={{ border: 'none', background: 'transparent', flex: 1, outline: 'none', color: 'var(--text-primary)', fontFamily: 'inherit' }}
                         />
                     </div>
                 </div>
